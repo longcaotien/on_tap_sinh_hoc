@@ -231,6 +231,14 @@
             <!-- Tab: Bảng xếp hạng -->
             <section id="tab-rank" hidden class="card overflow-hidden">
                 <div class="p-4">
+                    <div id="rank-toggle-card" class="mb-4 p-3 rounded-xl border border-[#d5e5da] flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
+                        <div class="min-w-0">
+                            <div id="rank-toggle-title" class="font-extrabold">Bảng xếp hạng đang mở</div>
+                            <div id="rank-toggle-sub" class="text-sm text-slate-600">Người học xem được bảng xếp hạng.</div>
+                            <p id="rank-toggle-status" role="status" class="text-sm text-rose-700"></p>
+                        </div>
+                        <button id="rank-toggle-btn" type="button" class="btn btn-block shrink-0">Đóng bảng xếp hạng</button>
+                    </div>
                     <h2 class="font-extrabold">Bảng xếp hạng</h2>
                     <p class="mt-1 text-sm text-slate-600">Điểm cao nhất của một lượt Kiểm tra đã làm hết câu. Bấm "Xoá điểm" để đưa một người ra khỏi bảng (họ sẽ lên lại khi làm xong lượt mới).</p>
                 </div>
@@ -312,7 +320,7 @@
         let scores = {};     // uid -> { best, attempts, lastScore, ... }
         let progress = {};   // uid -> { wrong: [], history: [] }
         let presence = {};   // uid -> { mode, topic, answered, total, score, ts }
-        let site = { maintenance: false, message: '' };
+        let site = { maintenance: false, message: '', leaderboard: true };
         let filter = 'all';
         let tab = 'users';
         let detailId = null;
@@ -418,7 +426,7 @@
             }, liveError));
             unsubs.push(onSnapshot(doc(db, 'settings', 'site'), (s) => {
                 const d = s.data() || {};
-                site = { maintenance: d.maintenance === true, message: typeof d.message === 'string' ? d.message : '' };
+                site = { maintenance: d.maintenance === true, message: typeof d.message === 'string' ? d.message : '', leaderboard: d.leaderboard !== false };
                 renderSite(true);
             }, liveError));
         });
@@ -464,7 +472,30 @@
             $('maint-btn').textContent = on ? 'Mở lại web' : 'Tắt web để bảo trì';
             $('maint-btn').className = 'btn shrink-0 ' + (on ? 'btn-primary' : 'btn-block');
             if (fillMessage && document.activeElement !== $('maint-msg')) $('maint-msg').value = site.message;
+
+            const open = site.leaderboard;
+            $('rank-toggle-card').style.background = open ? '' : '#fffbeb';
+            $('rank-toggle-card').style.borderColor = open ? '' : '#fcd34d';
+            $('rank-toggle-title').textContent = open ? 'Bảng xếp hạng đang mở' : 'Bảng xếp hạng đang ĐÓNG';
+            $('rank-toggle-sub').textContent = open
+                ? 'Người học xem được bảng xếp hạng.'
+                : 'Người học không xem được bảng. Điểm vẫn được ghi, và bạn vẫn xem được ở đây.';
+            $('rank-toggle-btn').textContent = open ? 'Đóng bảng xếp hạng' : 'Mở lại bảng xếp hạng';
+            $('rank-toggle-btn').className = 'btn shrink-0 ' + (open ? 'btn-block' : 'btn-primary');
         }
+
+        $('rank-toggle-btn').addEventListener('click', async () => {
+            const btn = $('rank-toggle-btn');
+            btn.disabled = true; $('rank-toggle-status').textContent = '';
+            try {
+                await setDoc(doc(db, 'settings', 'site'), { leaderboard: !site.leaderboard, updatedAt: serverTimestamp() }, { merge: true });
+            } catch (err) {
+                $('rank-toggle-status').textContent = err.code === 'permission-denied'
+                    ? 'Không lưu được: cần Publish firestore.rules bản mới trong Firebase trước.'
+                    : 'Không lưu được (' + (err.code || 'lỗi không rõ') + ').';
+            }
+            btn.disabled = false;
+        });
 
         async function saveSite(maintenance, okText) {
             const status = $('maint-status');
@@ -474,7 +505,7 @@
             try {
                 await setDoc(doc(db, 'settings', 'site'), {
                     maintenance, message: $('maint-msg').value.trim().slice(0, 300), updatedAt: serverTimestamp()
-                });
+                }, { merge: true });
                 status.textContent = okText;
             } catch (err) {
                 status.className = 'mt-2 text-sm text-rose-700 min-h-[1.25rem]';

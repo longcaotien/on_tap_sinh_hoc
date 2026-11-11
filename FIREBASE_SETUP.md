@@ -39,7 +39,7 @@ Mở `https://longcaotien.github.io/on_tap_sinh_hoc/admin.html`, đăng nhập b
 - Bấm **Chặn** / **Bỏ chặn**. Người đang mở trang bị chặn sẽ bị đưa ra màn hình "Tài khoản đã bị chặn" gần như ngay lập tức.
 - Xem điểm cao nhất, số lượt làm, số câu sai của từng người; sắp xếp, lọc, và **Xuất Excel (CSV)**.
 - Bấm **Chi tiết** để xem lịch sử làm bài, các câu đang sai, và xoá điểm / xoá câu sai / xoá người dùng.
-- Tab **Bảng xếp hạng**: xem thứ hạng và xoá điểm của một người.
+- Tab **Bảng xếp hạng**: xem thứ hạng và xoá điểm của một người. Nút **Đóng bảng xếp hạng** / **Mở lại bảng xếp hạng** ẩn hoặc hiện bảng với người học; trong lúc đóng điểm vẫn được ghi.
 - Tab **Câu hay sai**: câu nào đang có nhiều người sai nhất.
 - Ô **Bảo trì** ở đầu trang: bấm **Tắt web để bảo trì** thì mọi người học (kể cả đang mở trang) chỉ thấy màn hình "Trang đang bảo trì" kèm lời nhắn của bạn; bấm **Mở lại web** thì trang tự mở lại cho họ. Trang quản lý không bị ảnh hưởng.
 - Tab **Đang làm**: ai đang mở trang, đang ở trang chủ / ôn tập / kiểm tra, làm tới câu mấy và điểm hiện tại.

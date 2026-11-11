@@ -243,6 +243,7 @@
                       width: min(92vw, 30rem); display: flex; align-items: center; gap: .75rem; padding: .65rem .75rem .65rem 1rem;
                       background: #0d2b22; color: #fff; border-radius: 1rem; font-size: 13px; line-height: 1.4; box-shadow: 0 14px 30px -12px rgba(0,0,0,.6); }
         #update-bar[hidden] { display: none; }
+        [data-rank-entry][hidden] { display: none !important; }
         #update-bar span { flex: 1; }
         #update-bar button { flex-shrink: 0; min-height: 2.5rem; padding: 0 .9rem; border-radius: .75rem; background: #f2b640; color: #0d2b22; font-weight: 800; cursor: pointer; }
         #user-chip { position: fixed; left: .75rem; bottom: calc(.75rem + env(safe-area-inset-bottom, 0px)); z-index: 45; display: none; }
@@ -419,7 +420,7 @@
                     <i class="fa-solid fa-bolt"></i>
                     <span>Kiểm tra <span class="hidden lg:inline">(Bấm hiện liền)</span></span>
                 </button>
-                <button id="nav-rank" onclick="bioFx.openLeaderboard()" aria-label="Bảng xếp hạng" title="Bảng xếp hạng" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 text-amber-600 hover:text-amber-700">
+                <button id="nav-rank" data-rank-entry onclick="bioFx.openLeaderboard()" aria-label="Bảng xếp hạng" title="Bảng xếp hạng" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 text-amber-600 hover:text-amber-700">
                     <i class="fa-solid fa-trophy"></i>
                     <span class="hidden md:inline">Xếp hạng</span>
                 </button>
@@ -554,7 +555,7 @@
 
             <!-- ==================== BẢNG XẾP HẠNG & ÔN CÂU SAI ==================== -->
             <div class="grid sm:grid-cols-3 gap-4">
-                <button onclick="bioFx.openLeaderboard()" class="glass-card p-5 text-left flex items-center gap-4 hover:shadow-lg transition-shadow">
+                <button data-rank-entry onclick="bioFx.openLeaderboard()" class="glass-card p-5 text-left flex items-center gap-4 hover:shadow-lg transition-shadow">
                     <div class="w-12 h-12 shrink-0 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl"><i class="fa-solid fa-trophy"></i></div>
                     <div class="min-w-0">
                         <div class="font-extrabold text-slate-800">Bảng xếp hạng</div>
