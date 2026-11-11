@@ -222,7 +222,7 @@
             '</div>' +
             '<div style="display:grid;gap:.5rem;">' +
                 (left ? '<button type="button" class="fx-btn fx-btn-primary" data-fx="review"><i class="fa-solid fa-rotate"></i> Ôn ' + left + ' câu sai</button>' : '') +
-                (ranked ? '<button type="button" class="fx-btn fx-btn-soft" data-fx="rank"><i class="fa-solid fa-trophy"></i> Xem bảng xếp hạng</button>' : '') +
+                (ranked && !rankOff() ? '<button type="button" class="fx-btn fx-btn-soft" data-fx="rank"><i class="fa-solid fa-trophy"></i> Xem bảng xếp hạng</button>' : '') +
                 (ranked ? '<button type="button" class="fx-btn fx-btn-soft" data-fx="retry"><i class="fa-solid fa-rotate-right"></i> Làm lại từ đầu</button>' : '') +
                 '<button type="button" class="fx-btn fx-btn-soft" data-fx="close">Xem lại bài vừa làm</button>' +
             '</div>');
@@ -264,7 +264,23 @@
     }
 
     // ---------- Bảng xếp hạng ----------
+    // Quản lý có thể tạm đóng bảng xếp hạng: ẩn các nút vào bảng, điểm vẫn được ghi để khi mở lại còn đủ
+    function rankOff() { return !!(window.bioSite && window.bioSite.leaderboardOff); }
+
+    function applySite() {
+        var off = rankOff();
+        document.querySelectorAll('[data-rank-entry]').forEach(function (el) { el.hidden = off; });
+        if (off && modal && !modal.hidden && modalTitle.textContent === 'Bảng xếp hạng') openLeaderboard();
+    }
+
     function openLeaderboard() {
+        if (rankOff()) {
+            openModal('Bảng xếp hạng',
+                '<p style="font-weight:700;color:#0d2b22;">Bảng xếp hạng đang tạm đóng.</p>' +
+                '<p class="fx-muted" style="margin-top:.35rem;">Người quản lý đã tạm ẩn bảng xếp hạng. Điểm của bạn vẫn được ghi lại và sẽ hiện khi bảng mở lại.</p>' +
+                '<div style="margin-top:1rem;"><button type="button" class="fx-btn fx-btn-primary" data-fx="close">Đã hiểu</button></div>');
+            return;
+        }
         var note = '<p class="fx-muted">Xếp theo điểm cao nhất của một lượt Kiểm tra đã làm hết câu (cả 2 bài hoặc từng bài). Lượt ôn câu sai không được tính.</p>';
         if (!window.bioCloud || !uid) {
             openModal('Bảng xếp hạng', note +
@@ -310,8 +326,8 @@
     }
 
     // ---------- Báo hoạt động hiện tại cho trang quản lý ----------
-    // Gửi tối đa 20 giây/lần khi có thay đổi, và nhắc lại mỗi phút khi tab đang mở.
-    var PRESENCE_GAP = 20000, PRESENCE_BEAT = 60000;
+    // Gửi tối đa 4 giây/lần khi có thay đổi (để quản lý xem gần như trực tiếp), và nhắc lại mỗi phút khi tab đang mở.
+    var PRESENCE_GAP = 4000, PRESENCE_BEAT = 60000;
     var activityNow = { mode: 'home' };
     var presenceSentAt = 0, presenceTimer = null, presenceLast = '';
 
@@ -326,6 +342,8 @@
             data.answered = a.answered | 0;
             data.total = a.total | 0;
             data.score = round2(Math.max(0, Math.min(10, +a.score || 0)));
+            data.cur = String(a.cur || '').slice(0, 40);
+            if (a.ans) data.ans = a.ans;   // đáp án đã chọn, để quản lý xem lại đúng màn hình
         }
         presenceSentAt = Date.now();
         presenceLast = JSON.stringify(data);
@@ -387,5 +405,7 @@
     };
 
     window.addEventListener('bio:user', onUser);
+    window.addEventListener('bio:site', applySite);
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applySite); else applySite();
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', onUser); else onUser();
 })();

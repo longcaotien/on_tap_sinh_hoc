@@ -5,6 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Quản lý · BioMaster 11</title>
+    <script>
+    // Tự cập nhật phiên bản (giống index.html): có bản mới thì tải lại, bỏ qua bộ nhớ đệm.
+    (function () {
+        var BUILD = '__BUILD__';
+        if (BUILD.indexOf('__') === 0) return;
+        try {
+            if (/[?&]v=/.test(location.search)) history.replaceState(null, '', location.pathname + location.hash);
+        } catch (e) {}
+        function check() {
+            fetch('version.json?t=' + Date.now(), { cache: 'no-store' })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (d) {
+                    if (!d || !d.v || d.v === BUILD) return;
+                    var key = 'bm_reload_' + d.v, last = 0;
+                    try { last = +sessionStorage.getItem(key) || 0; } catch (e) {}
+                    if (Date.now() - last < 60000) return;
+                    try { sessionStorage.setItem(key, String(Date.now())); } catch (e) {}
+                    location.replace(location.pathname + '?v=' + encodeURIComponent(d.v) + location.hash);
+                })
+                .catch(function () {});
+        }
+        check();
+        setInterval(check, 60000);
+        document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') check(); });
+    })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -48,12 +74,25 @@
         #detail { position: fixed; inset: 0; z-index: 50; background: rgba(13,43,34,.45); display: flex; align-items: flex-end; justify-content: center; }
         #detail-card { background: #fff; width: 100%; max-width: 38rem; max-height: 90vh; display: flex; flex-direction: column; border-radius: 1.25rem 1.25rem 0 0; }
         @media (min-width: 640px) { #detail { align-items: center; padding: 1.25rem; } #detail-card { border-radius: 1.25rem; } }
+        #screen { position: fixed; inset: 0; z-index: 60; background: #f3f8f4; display: flex; flex-direction: column; }
+        #screen-body { flex: 1; overflow-y: auto; }
+        .sq { background: #fff; border: 1px solid #d5e5da; border-radius: 1rem; padding: 1rem; scroll-margin-top: 1rem; }
+        .sq.cur { border-color: #f2b640; box-shadow: 0 0 0 3px rgba(242,182,64,.45); }
+        .sq svg { max-width: 100%; height: auto; }
+        .opt { display: flex; gap: .6rem; align-items: flex-start; padding: .55rem .7rem; border: 1px solid #e2ece5; border-radius: .7rem; font-size: .9rem; }
+        .opt.ok { background: #ecfdf5; border-color: #34d399; }
+        .opt.bad { background: #fff1f2; border-color: #fb7185; }
+        .opt.key { border-color: #34d399; border-style: dashed; }
+        .tag { display: inline-block; font-size: .7rem; font-weight: 800; padding: .15rem .5rem; border-radius: 999px; white-space: nowrap; }
+        .tag-ok { background: #d1fae5; color: #065f46; } .tag-bad { background: #ffe4e6; color: #9f1239; }
+        .tag-none { background: #eef2f0; color: #5b7066; } .tag-cur { background: #fef3c7; color: #92400e; }
         .btn-danger { background: #be123c; color: #fff; }
         .btn-danger:hover { background: #9f1239; }
     </style>
 </head>
 <body class="min-h-screen">
-    <script src="firebase-config.js"></script>
+    <script src="firebase-config.js?v=__BUILD__"></script>
+    <script src="questions.js?v=__BUILD__"></script>
 
     <!-- Màn hình đăng nhập quản lý -->
     <main id="view-login" class="min-h-screen flex items-center justify-center p-5">
@@ -179,7 +218,7 @@
             <section id="tab-live" hidden class="card overflow-hidden">
                 <div class="p-4">
                     <h2 class="font-extrabold">Người dùng đang làm gì</h2>
-                    <p class="mt-1 text-sm text-slate-600">Tự cập nhật. Mỗi người báo về khoảng 20-60 giây một lần khi đang mở trang, nên số câu và điểm có thể chậm hơn thực tế một chút. Ai ngừng báo quá 2,5 phút được coi là đã rời đi.</p>
+                    <p class="mt-1 text-sm text-slate-600">Tự cập nhật. Bấm <b>Xem màn hình</b> để thấy từng câu người đó đang làm và đáp án đã chọn. Dữ liệu chậm hơn thực tế vài giây. Ai ngừng báo quá 2,5 phút được coi là đã rời đi.</p>
                 </div>
                 <div id="live-rows"></div>
                 <p id="live-empty" hidden class="p-8 text-center text-sm text-slate-500">Hiện không có ai đang mở trang.</p>
@@ -192,6 +231,14 @@
             <!-- Tab: Bảng xếp hạng -->
             <section id="tab-rank" hidden class="card overflow-hidden">
                 <div class="p-4">
+                    <div id="rank-toggle-card" class="mb-4 p-3 rounded-xl border border-[#d5e5da] flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
+                        <div class="min-w-0">
+                            <div id="rank-toggle-title" class="font-extrabold">Bảng xếp hạng đang mở</div>
+                            <div id="rank-toggle-sub" class="text-sm text-slate-600">Người học xem được bảng xếp hạng.</div>
+                            <p id="rank-toggle-status" role="status" class="text-sm text-rose-700"></p>
+                        </div>
+                        <button id="rank-toggle-btn" type="button" class="btn btn-block shrink-0">Đóng bảng xếp hạng</button>
+                    </div>
                     <h2 class="font-extrabold">Bảng xếp hạng</h2>
                     <p class="mt-1 text-sm text-slate-600">Điểm cao nhất của một lượt Kiểm tra đã làm hết câu. Bấm "Xoá điểm" để đưa một người ra khỏi bảng (họ sẽ lên lại khi làm xong lượt mới).</p>
                 </div>
@@ -209,6 +256,26 @@
                 <p id="missed-empty" hidden class="p-8 text-center text-sm text-slate-500">Chưa có dữ liệu câu sai.</p>
             </section>
         </main>
+    </div>
+
+    <!-- Xem màn hình người học đang làm -->
+    <div id="screen" hidden role="dialog" aria-modal="true" aria-labelledby="screen-name">
+        <div class="bg-white border-b border-[#d5e5da]">
+            <div class="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
+                <div id="screen-avatar"></div>
+                <div class="min-w-0 flex-1">
+                    <h2 id="screen-name" class="font-extrabold truncate"></h2>
+                    <div id="screen-sub" class="text-sm text-slate-600"></div>
+                </div>
+                <button id="screen-close" type="button" aria-label="Đóng" class="btn btn-soft shrink-0 !px-0 w-11 !h-11"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="max-w-4xl mx-auto px-4 pb-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                <span id="screen-state" class="font-semibold"></span>
+                <label class="flex items-center gap-2 cursor-pointer"><input id="screen-follow" type="checkbox" checked class="w-4 h-4"> Tự cuộn theo câu đang làm</label>
+                <label class="flex items-center gap-2 cursor-pointer"><input id="screen-only" type="checkbox" class="w-4 h-4"> Chỉ hiện câu đã làm</label>
+            </div>
+        </div>
+        <div id="screen-body"><div id="screen-list" class="max-w-4xl mx-auto px-4 py-4 space-y-3"></div></div>
     </div>
 
     <!-- Chi tiết một người dùng -->
@@ -253,7 +320,7 @@
         let scores = {};     // uid -> { best, attempts, lastScore, ... }
         let progress = {};   // uid -> { wrong: [], history: [] }
         let presence = {};   // uid -> { mode, topic, answered, total, score, ts }
-        let site = { maintenance: false, message: '' };
+        let site = { maintenance: false, message: '', leaderboard: true };
         let filter = 'all';
         let tab = 'users';
         let detailId = null;
@@ -308,6 +375,7 @@
 
             if (!user) {
                 closeDetail();
+                closeScreen();
                 $('view-admin').hidden = true;
                 $('view-login').hidden = false;
                 $('admin-pass').value = '';
@@ -358,7 +426,7 @@
             }, liveError));
             unsubs.push(onSnapshot(doc(db, 'settings', 'site'), (s) => {
                 const d = s.data() || {};
-                site = { maintenance: d.maintenance === true, message: typeof d.message === 'string' ? d.message : '' };
+                site = { maintenance: d.maintenance === true, message: typeof d.message === 'string' ? d.message : '', leaderboard: d.leaderboard !== false };
                 renderSite(true);
             }, liveError));
         });
@@ -404,7 +472,30 @@
             $('maint-btn').textContent = on ? 'Mở lại web' : 'Tắt web để bảo trì';
             $('maint-btn').className = 'btn shrink-0 ' + (on ? 'btn-primary' : 'btn-block');
             if (fillMessage && document.activeElement !== $('maint-msg')) $('maint-msg').value = site.message;
+
+            const open = site.leaderboard;
+            $('rank-toggle-card').style.background = open ? '' : '#fffbeb';
+            $('rank-toggle-card').style.borderColor = open ? '' : '#fcd34d';
+            $('rank-toggle-title').textContent = open ? 'Bảng xếp hạng đang mở' : 'Bảng xếp hạng đang ĐÓNG';
+            $('rank-toggle-sub').textContent = open
+                ? 'Người học xem được bảng xếp hạng.'
+                : 'Người học không xem được bảng. Điểm vẫn được ghi, và bạn vẫn xem được ở đây.';
+            $('rank-toggle-btn').textContent = open ? 'Đóng bảng xếp hạng' : 'Mở lại bảng xếp hạng';
+            $('rank-toggle-btn').className = 'btn shrink-0 ' + (open ? 'btn-block' : 'btn-primary');
         }
+
+        $('rank-toggle-btn').addEventListener('click', async () => {
+            const btn = $('rank-toggle-btn');
+            btn.disabled = true; $('rank-toggle-status').textContent = '';
+            try {
+                await setDoc(doc(db, 'settings', 'site'), { leaderboard: !site.leaderboard, updatedAt: serverTimestamp() }, { merge: true });
+            } catch (err) {
+                $('rank-toggle-status').textContent = err.code === 'permission-denied'
+                    ? 'Không lưu được: cần Publish firestore.rules bản mới trong Firebase trước.'
+                    : 'Không lưu được (' + (err.code || 'lỗi không rõ') + ').';
+            }
+            btn.disabled = false;
+        });
 
         async function saveSite(maintenance, okText) {
             const status = $('maint-status');
@@ -414,7 +505,7 @@
             try {
                 await setDoc(doc(db, 'settings', 'site'), {
                     maintenance, message: $('maint-msg').value.trim().slice(0, 300), updatedAt: serverTimestamp()
-                });
+                }, { merge: true });
                 status.textContent = okText;
             } catch (err) {
                 status.className = 'mt-2 text-sm text-rose-700 min-h-[1.25rem]';
@@ -456,6 +547,138 @@
             return '<span class="font-semibold text-slate-700">Ở trang chủ</span> · đang xem lý thuyết';
         }
 
+        // ---------- Xem màn hình người học ----------
+        // Dựng lại bài đang làm từ đáp án người học gửi về (cập nhật vài giây một lần). Không phải quay video màn hình.
+        const QUESTIONS = {
+            mcq: typeof originalMCQData !== 'undefined' ? originalMCQData : [],
+            tf: typeof originalTFData !== 'undefined' ? originalTFData : [],
+            sa: typeof originalSAData !== 'undefined' ? originalSAData : []
+        };
+        let screenId = null, screenCur = '', screenOpener = null;
+
+        function openScreen(id) {
+            screenOpener = document.activeElement;
+            screenId = id; screenCur = '';
+            $('screen').hidden = false;
+            renderScreen();
+            $('screen-close').focus();
+        }
+        function closeScreen() {
+            if ($('screen').hidden) return;
+            $('screen').hidden = true; screenId = null;
+            if (screenOpener && document.contains(screenOpener)) screenOpener.focus();
+        }
+        $('screen-close').addEventListener('click', closeScreen);
+        $('screen-only').addEventListener('change', () => renderScreen());
+
+        const tag = (cls, text) => `<span class="tag tag-${cls}">${text}</span>`;
+
+        function renderScreen() {
+            const p = presence[screenId];
+            if (!p) { closeScreen(); return; }
+            const u = users.find((x) => x.id === screenId) || p;
+            const online = isOnline(screenId);
+            $('screen-avatar').innerHTML = avatarHtml({ name: u.name || p.name, email: u.email || p.email, photoURL: u.photoURL || p.photoURL });
+            $('screen-name').textContent = u.name || p.name || '(chưa có tên)';
+            $('screen-sub').innerHTML = activityHtml(p);
+            $('screen-state').innerHTML = online
+                ? '<span class="live-dot mr-2" style="width:.5rem;height:.5rem"></span>Đang trực tuyến · cập nhật ' + ago(ms(p.ts))
+                : '<span class="text-rose-700">Đã rời đi · lần cuối ' + ago(ms(p.ts)) + '</span>';
+
+            const list = $('screen-list');
+            if (p.mode !== 'practice') {
+                list.innerHTML = '<div class="sq text-sm text-slate-600">' + (p.mode === 'study'
+                    ? 'Người này đang ở chế độ <b>Ôn tập</b>: trang hiện sẵn đáp án và giải thích, không có thao tác chọn đáp án để theo dõi.'
+                    : 'Người này đang ở <b>trang chủ</b> (xem lý thuyết), chưa vào làm bài.') + '</div>';
+                return;
+            }
+            if (!QUESTIONS.mcq.length) {
+                list.innerHTML = '<div class="sq text-sm text-rose-700">Không tải được bộ câu hỏi (questions.js). Hãy tải lại trang.</div>';
+                return;
+            }
+
+            const ans = (p.ans && typeof p.ans === 'object') ? p.ans : {};
+            const aM = ans.mcq || {}, aT = ans.tf || {}, aS = ans.sa || {};
+            const rev = Array.isArray(ans.rev) ? ans.rev : [];
+            const cur = typeof p.cur === 'string' ? p.cur : '';
+            const onlyDone = $('screen-only').checked;
+            const touched = (q) => q.uid in aM || q.uid in aT || q.uid in aS || rev.includes(q.uid);
+            // Bộ "Ôn câu sai" là danh sách riêng của từng người nên chỉ hiện được các câu họ đã chạm tới
+            const inSet = (q) => p.topic === 'b6' || p.topic === 'b8' ? q.topic === p.topic : p.topic === 'wrong' ? touched(q) : true;
+            const keep = (q) => inSet(q) && (!onlyDone || touched(q));
+            const head = (q, label, state) => `
+                <div class="flex flex-wrap items-center gap-2 mb-2">
+                    <span class="text-xs font-extrabold px-2 py-1 rounded-lg bg-emerald-700 text-white">${label}</span>
+                    <span class="text-xs text-slate-500">${esc(q.topicBadge || '')}</span>
+                    ${state}${q.uid === cur ? tag('cur', 'Vừa làm câu này') : ''}
+                </div>`;
+            const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+            let html = '';
+
+            const mcq = QUESTIONS.mcq.filter(keep);
+            if (mcq.length) html += '<h3 class="font-extrabold pt-2">Phần I · Nhiều lựa chọn</h3>';
+            html += mcq.map((q) => {
+                const has = q.uid in aM, c = Number(aM[q.uid]), shown = has || rev.includes(q.uid);
+                const state = has ? (c === q.correct ? tag('ok', 'Đúng') : tag('bad', 'Sai'))
+                    : rev.includes(q.uid) ? tag('bad', 'Bấm xem đáp án (0 điểm)') : tag('none', 'Chưa làm');
+                const opts = q.options.map((o, i) => {
+                    const cls = has && i === c ? (i === q.correct ? 'ok' : 'bad') : shown && i === q.correct ? 'key' : '';
+                    const note = has && i === c ? ' <b>← đã chọn</b>' : shown && i === q.correct ? ' <span class="text-emerald-700 font-semibold">(đáp án đúng)</span>' : '';
+                    return `<div class="opt ${cls}"><b>${letters[i]}.</b><div>${o}${note}</div></div>`;
+                }).join('');
+                return `<div class="sq${q.uid === cur ? ' cur' : ''}" data-q="${esc(q.uid)}">${head(q, 'Câu ' + q.num, state)}
+                    <div class="text-sm font-semibold mb-2">${q.question}</div>
+                    ${q.hasSeedSVG && typeof getSeedExperimentSVG === 'function' ? getSeedExperimentSVG() : ''}
+                    <div class="grid sm:grid-cols-2 gap-2">${opts}</div></div>`;
+            }).join('');
+
+            const tf = QUESTIONS.tf.filter(keep);
+            if (tf.length) html += '<h3 class="font-extrabold pt-4">Phần II · Đúng / Sai</h3>';
+            html += tf.map((q) => {
+                const vals = Array.isArray(aT[q.uid]) ? aT[q.uid] : [];
+                const done = q.statements.filter((s, i) => typeof vals[i] === 'boolean').length;
+                const right = q.statements.filter((s, i) => vals[i] === s.isTrue).length;
+                const state = !done ? tag('none', 'Chưa làm')
+                    : tag(done === q.statements.length && right === done ? 'ok' : right === done ? 'none' : 'bad', 'Đã chọn ' + done + '/' + q.statements.length + ' ý · đúng ' + right);
+                let diagram = '';
+                if (q.diagramType === 'potatoGraph' && typeof getPotatoGraphSVG === 'function') diagram = getPotatoGraphSVG();
+                if (q.diagramType === 'digestiveSystem' && typeof getDigestiveSystemSVG === 'function') diagram = getDigestiveSystemSVG();
+                const rows = q.statements.map((s, i) => {
+                    const v = vals[i], has = typeof v === 'boolean';
+                    const cls = has ? (v === s.isTrue ? 'ok' : 'bad') : '';
+                    const pick = has ? `<b>Chọn ${v ? 'Đúng' : 'Sai'}</b> ${v === s.isTrue ? tag('ok', '✓') : tag('bad', '✗ đáp án: ' + (s.isTrue ? 'Đúng' : 'Sai'))}` : tag('none', 'Chưa chọn');
+                    return `<div class="opt ${cls}"><b>${esc(s.label)})</b><div class="flex-1">${s.text}<div class="mt-1 text-xs">${pick}</div></div></div>`;
+                }).join('');
+                return `<div class="sq${q.uid === cur ? ' cur' : ''}" data-q="${esc(q.uid)}">${head(q, esc(q.title), state)}
+                    <div class="text-sm font-semibold mb-2">${q.prompt || ''}</div>${diagram}
+                    <div class="grid gap-2 mt-2">${rows}</div></div>`;
+            }).join('');
+
+            const sa = QUESTIONS.sa.filter(keep);
+            if (sa.length) html += '<h3 class="font-extrabold pt-4">Phần III · Trả lời ngắn</h3>';
+            html += sa.map((q) => {
+                const has = q.uid in aS, v = Number(aS[q.uid]);
+                const state = has ? (v === q.correctAnswer ? tag('ok', 'Đúng') : tag('bad', 'Sai')) : tag('none', 'Chưa làm');
+                const items = (q.items || []).map((it) => `<li>${it.text}</li>`).join('');
+                return `<div class="sq${q.uid === cur ? ' cur' : ''}" data-q="${esc(q.uid)}">${head(q, esc(q.title), state)}
+                    <div class="text-sm font-semibold mb-2">${q.question}</div>
+                    <ul class="text-sm space-y-1 mb-2">${items}</ul>
+                    <div class="text-sm">${has ? `Đã chọn: <b class="${v === q.correctAnswer ? 'text-emerald-700' : 'text-rose-700'}">${esc(v)}</b> · ` : ''}${has ? 'Đáp án đúng: <b>' + esc(q.correctAnswer) + '</b>' : ''}</div></div>`;
+            }).join('');
+
+            const body = $('screen-body'), keepTop = body.scrollTop;
+            list.innerHTML = (p.topic === 'wrong'
+                ? '<div class="sq text-sm text-slate-600">Người này đang <b>ôn câu sai</b>. Chỉ hiện những câu họ đã làm tới trong lượt này.</div>' : '')
+                + (html || '<div class="sq text-sm text-slate-600">Chưa làm câu nào.</div>')
+                + '<p class="text-xs text-slate-500 pt-2">Câu hỏi hiện theo thứ tự gốc; nếu người học bấm xáo trộn thì thứ tự trên máy họ khác, nhưng đáp án đã chọn vẫn khớp.</p>';
+            body.scrollTop = keepTop;
+            if (cur && cur !== screenCur && $('screen-follow').checked) {
+                const el = list.querySelector('[data-q="' + cur.replace(/[^\w-]/g, '') + '"]');
+                if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center' });
+            }
+            screenCur = cur;
+        }
+
         function liveRow(id, online) {
             const p = presence[id];
             const u = users.find((x) => x.id === id) || p;
@@ -469,7 +692,10 @@
                     </div>
                     <div class="shrink-0 text-right">
                         <div class="text-xs text-slate-500">${ago(ms(p.ts))}</div>
-                        ${users.some((x) => x.id === id) ? `<button type="button" data-act="detail" data-id="${esc(id)}" class="btn btn-soft mt-1">Chi tiết</button>` : ''}
+                        <div class="flex flex-col sm:flex-row gap-2 mt-1 justify-end">
+                            <button type="button" data-act="screen" data-id="${esc(id)}" class="btn btn-primary"><i class="fa-solid fa-display mr-1.5"></i>Xem màn hình</button>
+                            ${users.some((x) => x.id === id) ? `<button type="button" data-act="detail" data-id="${esc(id)}" class="btn btn-soft">Chi tiết</button>` : ''}
+                        </div>
                     </div>
                 </div>`;
         }
@@ -490,6 +716,7 @@
 
         function renderAll() {
             renderLive();
+            if (screenId) renderScreen();
             renderStats();
             renderUsers();
             renderRank();
@@ -679,7 +906,7 @@
         }
         $('detail-close').addEventListener('click', closeDetail);
         $('detail').addEventListener('click', (e) => { if (e.target === $('detail')) closeDetail(); });
-        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDetail(); });
+        document.addEventListener('keydown', (e) => { if (e.key !== 'Escape') return; if (!$('screen').hidden) closeScreen(); else closeDetail(); });
 
         function renderDetail() {
             const u = users.find((x) => x.id === detailId);
@@ -746,6 +973,7 @@
             if (!btn || btn.disabled) return;
             const id = btn.dataset.id, act = btn.dataset.act;
             if (act === 'detail') { openDetail(id); return; }
+            if (act === 'screen') { openScreen(id); return; }
 
             const u = users.find((x) => x.id === id) || {};
             const who = u.name || u.email || (scores[id] && scores[id].name) || 'người dùng này';

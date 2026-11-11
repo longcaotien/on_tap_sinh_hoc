@@ -42,10 +42,17 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.blocked == false;
     }
 
+    // Quản lý có thể tạm đóng bảng xếp hạng (settings/site.leaderboard == false)
+    function leaderboardOpen() {
+      return !exists(/databases/$(database)/documents/settings/site)
+        || get(/databases/$(database)/documents/settings/site).data.get('leaderboard', true) != false;
+    }
+
     // Bảng xếp hạng: mỗi người 1 dòng (tên, ảnh, điểm cao nhất). KHÔNG chứa email.
     match /scores/{uid} {
-      // Ai đã đăng nhập (và không bị chặn) đều xem được bảng xếp hạng
-      allow read: if isAdmin() || notBlocked();
+      // Xem bảng xếp hạng: phải đăng nhập, không bị chặn, và quản lý chưa đóng bảng.
+      // Mỗi người luôn đọc được dòng điểm của chính mình.
+      allow read: if isAdmin() || isOwner(uid) || (notBlocked() && leaderboardOpen());
 
       // Mỗi người chỉ ghi được dòng của chính mình, điểm trong khoảng 0-10
       allow create, update: if isOwner(uid) && notBlocked()
@@ -72,7 +79,7 @@ service cloud.firestore {
       allow read: if isAdmin();
 
       allow create, update: if isOwner(uid)
-        && request.resource.data.keys().hasOnly(['mode', 'topic', 'answered', 'total', 'score', 'name', 'email', 'photoURL', 'ts'])
+        && request.resource.data.keys().hasOnly(['mode', 'topic', 'answered', 'total', 'score', 'cur', 'ans', 'name', 'email', 'photoURL', 'ts'])
         && request.resource.data.mode in ['home', 'study', 'practice']
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.name is string && request.resource.data.name.size() <= 80

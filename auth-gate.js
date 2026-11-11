@@ -152,6 +152,9 @@ onSnapshot(
     $('gate-maintenance-text').textContent = (typeof d.message === 'string' && d.message.trim())
       ? d.message.trim().slice(0, 300)
       : 'Người quản lý đang tạm đóng trang để cập nhật. Vui lòng quay lại sau.';
+    // Quản lý đóng/mở bảng xếp hạng: báo cho features.js
+    window.bioSite = { leaderboardOff: d.leaderboard === false };
+    window.dispatchEvent(new Event('bio:site'));
     if (maintenance) showMaintenance();
     else if (was && restore) restore();
   },
