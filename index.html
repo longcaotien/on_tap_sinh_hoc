@@ -310,7 +310,7 @@
         if (!c || !c.apiKey || /^DIEN_/.test(c.apiKey)) { b.dataset.auth = 'ok'; return; }
         b.dataset.auth = 'pending';
         var m = document.createElement('script');
-        m.type = 'module'; m.src = 'auth-gate.js?v=3';
+        m.type = 'module'; m.src = 'auth-gate.js?v=4';
         document.head.appendChild(m);
         // Không tải được dịch vụ đăng nhập (mạng chặn, ...): báo lỗi thay vì treo màn hình chờ
         setTimeout(function () {
@@ -352,6 +352,10 @@
                 <button id="nav-practice" onclick="switchMainView('practice')" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 text-slate-600 hover:text-bio-700">
                     <i class="fa-solid fa-bolt"></i>
                     <span>Kiểm tra <span class="hidden lg:inline">(Bấm hiện liền)</span></span>
+                </button>
+                <button id="nav-rank" onclick="bioFx.openLeaderboard()" aria-label="Bảng xếp hạng" title="Bảng xếp hạng" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 text-amber-600 hover:text-amber-700">
+                    <i class="fa-solid fa-trophy"></i>
+                    <span class="hidden md:inline">Xếp hạng</span>
                 </button>
             </div>
 
@@ -480,6 +484,31 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- ==================== BẢNG XẾP HẠNG & ÔN CÂU SAI ==================== -->
+            <div class="grid sm:grid-cols-3 gap-4">
+                <button onclick="bioFx.openLeaderboard()" class="glass-card p-5 text-left flex items-center gap-4 hover:shadow-lg transition-shadow">
+                    <div class="w-12 h-12 shrink-0 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl"><i class="fa-solid fa-trophy"></i></div>
+                    <div class="min-w-0">
+                        <div class="font-extrabold text-slate-800">Bảng xếp hạng</div>
+                        <div class="text-xs text-slate-500">Xem ai đang đạt điểm cao nhất</div>
+                    </div>
+                </button>
+                <button onclick="bioFx.startReview()" class="glass-card p-5 text-left flex items-center gap-4 hover:shadow-lg transition-shadow">
+                    <div class="w-12 h-12 shrink-0 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center text-xl"><i class="fa-solid fa-rotate"></i></div>
+                    <div class="min-w-0">
+                        <div class="font-extrabold text-slate-800">Ôn tập câu sai</div>
+                        <div class="text-xs text-slate-500"><b class="text-rose-700"><span data-wrong-count>0</span> câu</b> đang chờ làm lại</div>
+                    </div>
+                </button>
+                <button onclick="bioFx.openHistory()" class="glass-card p-5 text-left flex items-center gap-4 hover:shadow-lg transition-shadow">
+                    <div class="w-12 h-12 shrink-0 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl"><i class="fa-solid fa-chart-line"></i></div>
+                    <div class="min-w-0">
+                        <div class="font-extrabold text-slate-800">Kết quả của tôi</div>
+                        <div class="text-xs text-slate-500">Cao nhất: <b class="text-emerald-700"><span data-best-score>—</span></b> · <span data-attempt-count>0</span> lượt làm</div>
+                    </div>
+                </button>
             </div>
 
             <!-- ==================== TÓM TẮT LÝ THUYẾT CỐT LÕI (BÀI 6 & BÀI 8 - ĐÃ FIX 100% KÝ TỰ) ==================== -->
@@ -720,6 +749,7 @@
                                     <button onclick="setTopicFilter('all')" id="topic-all" class="px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all bg-bio-700 text-white shadow-sm">Tất cả 2 bài (50 câu)</button>
                                     <button onclick="setTopicFilter('b6')" id="topic-b6" class="px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all text-slate-600 hover:text-bio-700">🌱 Bài 6: Hô hấp TV (25 câu)</button>
                                     <button onclick="setTopicFilter('b8')" id="topic-b8" class="px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all text-slate-600 hover:text-bio-700">🫀 Bài 8: Tiêu hóa ĐV (25 câu)</button>
+                                    <button onclick="setTopicFilter('wrong')" id="topic-wrong" class="px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all text-slate-600 hover:text-bio-700">❌ Câu sai (<span data-wrong-count>0</span>)</button>
                                 </div>
                                 <div class="chip-row flex flex-wrap items-center gap-1.5">
                                     <button onclick="filterPart('all')" id="filter-all" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-white shadow-sm transition-all">Đầy đủ 3 phần</button>
@@ -731,6 +761,13 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div id="wrong-empty" class="hidden glass-card p-8 text-center">
+                <div class="w-12 h-12 mx-auto rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl"><i class="fa-solid fa-check"></i></div>
+                <p class="mt-3 font-extrabold text-slate-800">Chưa có câu sai nào</p>
+                <p class="mt-1 text-sm text-slate-600">Những câu bạn làm sai trong chế độ Kiểm tra sẽ được gom vào đây để ôn lại.</p>
+                <button onclick="startTopic('all', 'practice')" class="mt-4 px-4 py-2.5 rounded-xl bg-bio-700 hover:bg-bio-900 text-white font-bold text-sm">Vào Kiểm tra</button>
             </div>
 
             <!-- ==================== PHẦN I: TRẮC NGHIỆM NHIỀU LỰA CHỌN ==================== -->
@@ -1774,9 +1811,17 @@
             scale: 10
         };
 
+        // Câu thuộc bộ lọc hiện tại? ('wrong' = danh sách câu sai đã chụp lại lúc bắt đầu ôn)
+        function inTopic(q) {
+            if (currentTopic === 'all') return true;
+            if (currentTopic === 'wrong') return !!(window.bioFx && bioFx.inReview(q.uid));
+            return q.topic === currentTopic;
+        }
+
         function clearAnswers() {
             userAnswers = { mcq: {}, tf: {}, sa: {} };
             revealedMCQ = {};
+            if (window.bioFx) bioFx.newAttempt();
         }
 
         // Điểm của 1 câu Đúng/Sai theo số ý đúng (câu có số ý khác 4 thì chia theo tỉ lệ)
@@ -1904,6 +1949,7 @@
         }
 
         function setTopicFilter(topicCode) {
+            if (topicCode === 'wrong' && window.bioFx) bioFx.snapshotReview();
             currentTopic = topicCode;
             updateTopicButtonsUI();
             renderAllQuestions();
@@ -1911,7 +1957,7 @@
         }
 
         function updateTopicButtonsUI() {
-            ['all', 'b6', 'b8'].forEach(t => {
+            ['all', 'b6', 'b8', 'wrong'].forEach(t => {
                 const btn = document.getElementById(`topic-${t}`);
                 if (t === currentTopic) {
                     btn.className = "px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all bg-bio-700 text-white shadow-sm";
@@ -2001,6 +2047,9 @@
             renderMCQs();
             renderTFs();
             renderSAs();
+            const none = currentTopic === 'wrong'
+                && !activeMCQData.some(inTopic) && !activeTFData.some(inTopic) && !activeSAData.some(inTopic);
+            document.getElementById('wrong-empty').classList.toggle('hidden', !none);
         }
 
         // --- 7.1 Render Phần I (ABCD) ---
@@ -2009,7 +2058,7 @@
             const isStudy = currentMode === 'study';
             const letters = ['A', 'B', 'C', 'D'];
 
-            const filtered = activeMCQData.filter(q => currentTopic === 'all' || q.topic === currentTopic);
+            const filtered = activeMCQData.filter(inTopic);
             document.getElementById('count-part1').textContent = `${filtered.length} câu`;
 
             container.innerHTML = filtered.map((q, displayIdx) => {
@@ -2120,7 +2169,7 @@
             const container = document.getElementById('tf-container');
             const isStudy = currentMode === 'study';
 
-            const filtered = activeTFData.filter(q => currentTopic === 'all' || q.topic === currentTopic);
+            const filtered = activeTFData.filter(inTopic);
             document.getElementById('count-part2').textContent = `${filtered.length} câu (${filtered.length * 4} ý)`;
 
             container.innerHTML = filtered.map(q => {
@@ -2261,7 +2310,7 @@
             const container = document.getElementById('sa-container');
             const isStudy = currentMode === 'study';
 
-            const filtered = activeSAData.filter(q => currentTopic === 'all' || q.topic === currentTopic);
+            const filtered = activeSAData.filter(inTopic);
             document.getElementById('count-part3').textContent = `${filtered.length} câu`;
 
             container.innerHTML = filtered.map(q => {
@@ -2377,6 +2426,8 @@
         function selectMCQ(uid, optionIndex) {
             if (userAnswers.mcq[uid] !== undefined || revealedMCQ[uid]) return;
             userAnswers.mcq[uid] = optionIndex;
+            const mq = activeMCQData.find(x => x.uid === uid);
+            if (mq && window.bioFx) bioFx.record(uid, optionIndex === mq.correct);
             renderMCQs();
             updateScoreUI();
         }
@@ -2385,6 +2436,7 @@
         function revealMCQ(uid) {
             if (userAnswers.mcq[uid] !== undefined || revealedMCQ[uid]) return;
             revealedMCQ[uid] = true;
+            if (window.bioFx) bioFx.record(uid, false);
             renderMCQs();
             updateScoreUI();
         }
@@ -2393,6 +2445,11 @@
             const key = `${uid}_${label}`;
             if (userAnswers.tf[key] !== undefined) return;
             userAnswers.tf[key] = boolVal;
+            const tq = activeTFData.find(x => x.uid === uid);
+            if (tq && window.bioFx) {
+                const st = getTFState(tq);
+                if (st.done) bioFx.record(uid, st.correct === st.total);
+            }
             renderTFs();
             updateScoreUI();
         }
@@ -2400,14 +2457,16 @@
         function selectSA(uid, numVal) {
             if (userAnswers.sa[uid] !== undefined) return;
             userAnswers.sa[uid] = numVal;
+            const sq = activeSAData.find(x => x.uid === uid);
+            if (sq && window.bioFx) bioFx.record(uid, numVal === sq.correctAnswer);
             renderSAs();
             updateScoreUI();
         }
 
         function updateScoreUI() {
-            const filteredMCQ = activeMCQData.filter(q => currentTopic === 'all' || q.topic === currentTopic);
-            const filteredTF = activeTFData.filter(q => currentTopic === 'all' || q.topic === currentTopic);
-            const filteredSA = activeSAData.filter(q => currentTopic === 'all' || q.topic === currentTopic);
+            const filteredMCQ = activeMCQData.filter(inTopic);
+            const filteredTF = activeTFData.filter(inTopic);
+            const filteredSA = activeSAData.filter(inTopic);
 
             const totalQuestions = filteredMCQ.length + filteredTF.length + filteredSA.length;
             let answeredCount = 0;   // số câu đã xong (đã làm hoặc đã xem đáp án)
@@ -2454,6 +2513,9 @@
                 document.getElementById('toolbar-bar-fill').style.width = (totalQuestions ? answeredCount / totalQuestions * 100 : 0) + '%';
                 updateToolbarSummary();
             }
+            if (window.bioFx && currentMode === 'practice') {
+                bioFx.onProgress({ topic: currentTopic, answered: answeredCount, total: totalQuestions, score: score10 });
+            }
         }
 
         function resetPractice() {
@@ -2477,7 +2539,7 @@
         function updateToolbarSummary() {
             const el = document.getElementById('toolbar-summary');
             if (!el) return;
-            const t = { all: 'Cả 2 bài', b6: 'Bài 6', b8: 'Bài 8' }[currentTopic] || 'Cả 2 bài';
+            const t = { all: 'Cả 2 bài', b6: 'Bài 6', b8: 'Bài 8', wrong: 'Câu sai' }[currentTopic] || 'Cả 2 bài';
             const p = { all: 'đủ 3 phần', part1: 'Phần I', part2: 'Phần II', part3: 'Phần III' }[currentPartFilter] || 'đủ 3 phần';
             el.textContent = t + ', ' + p + (isShuffled ? ', đã xáo trộn' : '');
         }
@@ -2505,6 +2567,7 @@
             switchMainView('home');
         });
     </script>
+    <script src="features.js?v=1"></script>
 <button id="fab-top" class="fab" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Lên đầu trang"><i class="fa-solid fa-arrow-up"></i></button>
 </body>
 </html>

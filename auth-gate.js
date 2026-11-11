@@ -5,7 +5,8 @@ import {
   getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, serverTimestamp, increment
+  getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, onSnapshot, serverTimestamp, increment,
+  collection, query, orderBy, limit
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 const app = initializeApp(window.BIO_FIREBASE);
@@ -73,6 +74,51 @@ const store = {
 
 let unsubProfile = null;
 
+// Cầu nối cho features.js: lưu câu sai, lịch sử làm bài và điểm bảng xếp hạng lên Firestore
+function setCloud(user) {
+  if (!user) {
+    if (!window.bioCloud) return;
+    window.bioCloud = null;
+    window.dispatchEvent(new Event('bio:user'));
+    return;
+  }
+  if (window.bioCloud && window.bioCloud.uid === user.uid) return;
+  const progressRef = doc(db, 'progress', user.uid);
+  const scoreRef = doc(db, 'scores', user.uid);
+  window.bioCloud = {
+    uid: user.uid,
+    async loadProgress() {
+      const [p, s] = await Promise.all([getDoc(progressRef), getDoc(scoreRef)]);
+      return { progress: p.exists() ? p.data() : null, score: s.exists() ? s.data() : null };
+    },
+    saveProgress(data) {
+      return setDoc(progressRef, { wrong: data.wrong, history: data.history, ts: data.ts, updatedAt: serverTimestamp() });
+    },
+    // Ghi 1 lượt làm xong; trả về điểm cao nhất và số lượt sau khi ghi
+    async saveScore(score) {
+      const snap = await getDoc(scoreRef);
+      const prev = snap.exists() ? snap.data() : {};
+      const improved = typeof prev.best !== 'number' || score > prev.best;
+      const next = {
+        name: (user.displayName || 'Bạn học').slice(0, 80),
+        photoURL: user.photoURL || '',
+        best: improved ? score : prev.best,
+        bestAt: improved || !prev.bestAt ? serverTimestamp() : prev.bestAt,
+        attempts: (prev.attempts || 0) + 1,
+        lastScore: score,
+        lastAt: serverTimestamp()
+      };
+      await setDoc(scoreRef, next);
+      return { best: next.best, attempts: next.attempts };
+    },
+    async loadLeaderboard() {
+      const snap = await getDocs(query(collection(db, 'scores'), orderBy('best', 'desc'), limit(50)));
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    }
+  };
+  window.dispatchEvent(new Event('bio:user'));
+}
+
 function unlock(user) {
   document.body.dataset.auth = 'ok';
   const label = user.displayName || user.email || 'Tài khoản';
@@ -81,12 +127,14 @@ function unlock(user) {
   $('user-chip-initial').textContent = label.trim().charAt(0).toUpperCase();
   if (window.bioUserMenu) window.bioUserMenu.close();
   $('user-chip').style.display = 'block';
+  setCloud(user);
 }
 function lock(user) {
   document.body.dataset.auth = 'blocked';
   if (window.bioUserMenu) window.bioUserMenu.close();
   $('user-chip').style.display = 'none';
   $('gate-blocked-email').textContent = user.email || '';
+  setCloud(null);
   showPanel('blocked');
 }
 
@@ -94,6 +142,7 @@ onAuthStateChanged(auth, async (user) => {
   if (unsubProfile) { unsubProfile(); unsubProfile = null; }
 
   if (!user) {
+    setCloud(null);
     $('user-chip').style.display = 'none';
     document.body.dataset.auth = 'gate';
     showPanel('login');

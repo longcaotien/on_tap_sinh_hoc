@@ -35,5 +35,41 @@ service cloud.firestore {
 
       allow delete: if isAdmin();
     }
+
+    // Người đang đăng nhập có hồ sơ và không bị chặn
+    function notBlocked() {
+      return request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.blocked == false;
+    }
+
+    // Bảng xếp hạng: mỗi người 1 dòng (tên, ảnh, điểm cao nhất). KHÔNG chứa email.
+    match /scores/{uid} {
+      // Ai đã đăng nhập (và không bị chặn) đều xem được bảng xếp hạng
+      allow read: if isAdmin() || notBlocked();
+
+      // Mỗi người chỉ ghi được dòng của chính mình, điểm trong khoảng 0-10
+      allow create, update: if isOwner(uid) && notBlocked()
+        && request.resource.data.keys().hasOnly(['name', 'photoURL', 'best', 'bestAt', 'attempts', 'lastScore', 'lastAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 80
+        && request.resource.data.photoURL is string && request.resource.data.photoURL.size() <= 500
+        && request.resource.data.best is number && request.resource.data.best >= 0 && request.resource.data.best <= 10
+        && request.resource.data.lastScore is number && request.resource.data.lastScore >= 0 && request.resource.data.lastScore <= 10
+        && request.resource.data.attempts is int && request.resource.data.attempts >= 1;
+
+      // Quản lý xoá điểm (đưa một người ra khỏi bảng xếp hạng)
+      allow delete: if isAdmin();
+    }
+
+    // Câu sai và lịch sử làm bài của từng người: chỉ chính người đó và quản lý xem được
+    match /progress/{uid} {
+      allow read: if isAdmin() || isOwner(uid);
+
+      allow create, update: if isOwner(uid) && notBlocked()
+        && request.resource.data.keys().hasOnly(['wrong', 'history', 'ts', 'updatedAt'])
+        && request.resource.data.wrong is list && request.resource.data.wrong.size() <= 200
+        && request.resource.data.history is list && request.resource.data.history.size() <= 30;
+
+      allow delete: if isAdmin();
+    }
   }
 }
