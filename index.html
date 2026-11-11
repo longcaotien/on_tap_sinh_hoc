@@ -192,18 +192,25 @@
         body:not([data-auth="ok"]) #auth-gate { display: flex; }
         body:not([data-auth="ok"]) > *:not(#auth-gate):not(script):not(style):not(link):not(noscript) { display: none !important; }
         #user-chip { position: fixed; left: .75rem; bottom: calc(.75rem + env(safe-area-inset-bottom, 0px)); z-index: 45; display: none; }
-        #user-chip-toggle { width: 2.25rem; height: 2.25rem; border-radius: 999px; background: #fff; color: #0b7a58; border: 1px solid var(--line);
-                            font-size: 13px; font-weight: 800; opacity: .8; display: flex; align-items: center; justify-content: center;
-                            box-shadow: 0 6px 16px -8px rgba(0,0,0,.4); transition: opacity .15s; }
-        #user-chip-toggle:hover, #user-chip-toggle[aria-expanded="true"] { opacity: 1; }
-        #user-menu { position: absolute; left: 0; bottom: calc(100% + .5rem); width: max-content; max-width: min(78vw, 18rem);
-                     background: #fff; border: 1px solid var(--line); border-radius: .9rem; padding: .75rem; box-shadow: 0 14px 30px -14px rgba(0,0,0,.45); }
-        #user-menu[hidden] { display: none; }
-        #user-chip-name { font-size: 13px; font-weight: 700; color: #0d2b22; overflow-wrap: anywhere; }
+        #user-chip [hidden] { display: none !important; }
+        #user-backdrop { position: fixed; inset: 0; z-index: 0; background: rgba(13, 43, 34, .18); }
+        #user-chip-toggle { position: relative; z-index: 2; width: 2.75rem; height: 2.75rem; border-radius: 999px; background: #fff; color: #0b7a58;
+                            border: 1px solid var(--line); font-size: 15px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+                            box-shadow: 0 6px 16px -8px rgba(0,0,0,.45); cursor: pointer; }
+        #user-chip-toggle:active { transform: scale(.96); }
+        #user-menu { position: absolute; z-index: 3; left: 0; bottom: calc(100% + .6rem); width: min(86vw, 19rem);
+                     background: #fff; border: 1px solid var(--line); border-radius: 1rem; padding: .9rem; box-shadow: 0 16px 34px -14px rgba(0,0,0,.5); }
+        #user-chip-name { font-size: 14px; font-weight: 700; color: #0d2b22; overflow-wrap: anywhere; }
         #user-chip-email { font-size: 12px; color: #5b7066; margin-top: .1rem; overflow-wrap: anywhere; }
-        #user-chip-out { margin-top: .65rem; width: 100%; min-height: 2.5rem; padding: 0 .9rem; border-radius: .7rem; background: #fff1f2; color: #be123c;
-                         border: 1px solid #fecdd3; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: .45rem; }
-        #user-chip-out:hover { background: #ffe4e6; }
+        #user-chip-out { margin-top: .8rem; width: 100%; min-height: 2.75rem; border-radius: .75rem; background: #f1f5f2; color: #334a40;
+                         font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: .5rem; cursor: pointer; }
+        #user-chip-out:hover { background: #e4ece7; }
+        #user-confirm { margin-top: .8rem; padding-top: .8rem; border-top: 1px solid #e6f1ea; }
+        #user-confirm p { font-size: 13px; font-weight: 600; color: #0d2b22; margin-bottom: .6rem; }
+        #user-confirm-row { display: flex; gap: .5rem; }
+        #user-confirm-row button { flex: 1; min-height: 2.75rem; border-radius: .75rem; font-size: 14px; font-weight: 700; cursor: pointer; }
+        #user-cancel { background: #ecf5ef; color: #0b7a58; }
+        #user-confirm-out { background: #be123c; color: #fff; }
 
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -253,15 +260,48 @@
     </div>
 
     <div id="user-chip">
-        <div id="user-menu" role="menu" hidden>
+        <div id="user-backdrop" hidden></div>
+        <div id="user-menu" role="dialog" aria-label="Tài khoản" hidden>
             <div id="user-chip-name"></div>
             <div id="user-chip-email"></div>
-            <button id="user-chip-out" type="button" role="menuitem"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</button>
+            <button id="user-chip-out" type="button"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</button>
+            <div id="user-confirm" hidden>
+                <p>Đăng xuất khỏi tài khoản này?</p>
+                <div id="user-confirm-row">
+                    <button id="user-cancel" type="button">Ở lại</button>
+                    <button id="user-confirm-out" type="button">Đăng xuất</button>
+                </div>
+            </div>
         </div>
-        <button id="user-chip-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Tài khoản">
+        <button id="user-chip-toggle" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Tài khoản">
             <span id="user-chip-initial"></span>
         </button>
     </div>
+
+    <script>
+    // Menu tài khoản: nằm ngay trong trang (không phụ thuộc file đăng nhập) để luôn bấm được
+    (function () {
+        var $ = function (id) { return document.getElementById(id); };
+        var menu = $('user-menu'), backdrop = $('user-backdrop'), toggle = $('user-chip-toggle');
+        var out = $('user-chip-out'), box = $('user-confirm');
+        function resetConfirm() { box.hidden = true; out.hidden = false; }
+        function setOpen(open) {
+            menu.hidden = !open; backdrop.hidden = !open;
+            toggle.setAttribute('aria-expanded', String(open));
+            if (!open) resetConfirm();
+        }
+        toggle.addEventListener('click', function () { setOpen(menu.hidden); });
+        backdrop.addEventListener('click', function () { setOpen(false); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setOpen(false); });
+        out.addEventListener('click', function () { out.hidden = true; box.hidden = false; });
+        $('user-cancel').addEventListener('click', resetConfirm);
+        $('user-confirm-out').addEventListener('click', function () {
+            setOpen(false);
+            window.dispatchEvent(new Event('bio:signout'));
+        });
+        window.bioUserMenu = { close: function () { setOpen(false); } };
+    })();
+    </script>
 
     <script>
     (function () {
@@ -270,7 +310,7 @@
         if (!c || !c.apiKey || /^DIEN_/.test(c.apiKey)) { b.dataset.auth = 'ok'; return; }
         b.dataset.auth = 'pending';
         var m = document.createElement('script');
-        m.type = 'module'; m.src = 'auth-gate.js';
+        m.type = 'module'; m.src = 'auth-gate.js?v=3';
         document.head.appendChild(m);
         // Không tải được dịch vụ đăng nhập (mạng chặn, ...): báo lỗi thay vì treo màn hình chờ
         setTimeout(function () {
