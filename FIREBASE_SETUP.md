@@ -42,7 +42,8 @@ Mở `https://longcaotien.github.io/on_tap_sinh_hoc/admin.html`, đăng nhập b
 - Tab **Bảng xếp hạng**: xem thứ hạng và xoá điểm của một người.
 - Tab **Câu hay sai**: câu nào đang có nhiều người sai nhất.
 - Ô **Bảo trì** ở đầu trang: bấm **Tắt web để bảo trì** thì mọi người học (kể cả đang mở trang) chỉ thấy màn hình "Trang đang bảo trì" kèm lời nhắn của bạn; bấm **Mở lại web** thì trang tự mở lại cho họ. Trang quản lý không bị ảnh hưởng.
-- Tab **Đang làm**: ai đang mở trang, đang ở trang chủ / ôn tập / kiểm tra, làm tới câu mấy và điểm hiện tại. Cập nhật chậm khoảng 20-60 giây.
+- Tab **Đang làm**: ai đang mở trang, đang ở trang chủ / ôn tập / kiểm tra, làm tới câu mấy và điểm hiện tại.
+- Nút **Xem màn hình** trong tab đó: hiện từng câu người học đang làm, đáp án họ đã chọn, đúng hay sai, và tự cuộn theo câu vừa làm. Đây là bản dựng lại từ đáp án gửi về (chậm vài giây), không phải quay video màn hình.
 
 Hai tính năng trên dùng thêm hai bảng `settings` và `presence`, nên cũng cần Publish lại `firestore.rules`.
 
@@ -57,3 +58,6 @@ Hai tính năng này lưu thêm dữ liệu vào hai bảng `scores` (điểm, k
 - Chặn là chặn theo **tài khoản Google**. Người bị chặn có thể dùng tài khoản Google khác để vào lại.
 - Bộ câu hỏi hiện nằm trong `index.html`, nên người rành kỹ thuật vẫn xem được bằng "xem nguồn trang" dù bị chặn. Muốn chặn triệt để thì phải chuyển bộ câu hỏi lên Firestore.
 - Trang có lưu tên, email và ảnh đại diện Google của người dùng khi họ đăng nhập.
+
+## 8. Tự cập nhật phiên bản
+Mỗi lần deploy, GitHub Actions gắn mã phiên bản vào trang và tạo `version.json`. Trang của người học hỏi lại file này mỗi lần mở trang, mỗi lần quay lại tab và mỗi phút; thấy bản mới thì tự tải lại, bỏ qua bộ nhớ đệm. Riêng người đang làm dở bài kiểm tra chỉ thấy thanh nhắc "Cập nhật ngay" và được tải lại khi làm xong, để không mất bài.

@@ -31,6 +31,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      # Gắn mã phiên bản vào trang để trình duyệt của người học tự tải bản mới (xem đoạn "Tự cập nhật phiên bản" trong index.html)
+      - name: Stamp build version
+        run: |
+          V="${GITHUB_SHA::8}"
+          sed -i "s/__BUILD__/$V/g" index.html admin.html
+          printf '{"v":"%s"}\n' "$V" > version.json
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

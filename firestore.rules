@@ -72,7 +72,7 @@ service cloud.firestore {
       allow read: if isAdmin();
 
       allow create, update: if isOwner(uid)
-        && request.resource.data.keys().hasOnly(['mode', 'topic', 'answered', 'total', 'score', 'name', 'email', 'photoURL', 'ts'])
+        && request.resource.data.keys().hasOnly(['mode', 'topic', 'answered', 'total', 'score', 'cur', 'ans', 'name', 'email', 'photoURL', 'ts'])
         && request.resource.data.mode in ['home', 'study', 'practice']
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.name is string && request.resource.data.name.size() <= 80

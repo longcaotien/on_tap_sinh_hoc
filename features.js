@@ -310,8 +310,8 @@
     }
 
     // ---------- Báo hoạt động hiện tại cho trang quản lý ----------
-    // Gửi tối đa 20 giây/lần khi có thay đổi, và nhắc lại mỗi phút khi tab đang mở.
-    var PRESENCE_GAP = 20000, PRESENCE_BEAT = 60000;
+    // Gửi tối đa 4 giây/lần khi có thay đổi (để quản lý xem gần như trực tiếp), và nhắc lại mỗi phút khi tab đang mở.
+    var PRESENCE_GAP = 4000, PRESENCE_BEAT = 60000;
     var activityNow = { mode: 'home' };
     var presenceSentAt = 0, presenceTimer = null, presenceLast = '';
 
@@ -326,6 +326,8 @@
             data.answered = a.answered | 0;
             data.total = a.total | 0;
             data.score = round2(Math.max(0, Math.min(10, +a.score || 0)));
+            data.cur = String(a.cur || '').slice(0, 40);
+            if (a.ans) data.ans = a.ans;   // đáp án đã chọn, để quản lý xem lại đúng màn hình
         }
         presenceSentAt = Date.now();
         presenceLast = JSON.stringify(data);
