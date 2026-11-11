@@ -60,6 +60,27 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Cài đặt chung của trang (bật/tắt bảo trì). Ai cũng đọc được để thấy thông báo bảo trì
+    // ngay cả khi chưa đăng nhập; chỉ quản lý được sửa.
+    match /settings/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Hoạt động hiện tại của từng người (đang ở trang nào, làm tới câu mấy): chỉ quản lý xem được
+    match /presence/{uid} {
+      allow read: if isAdmin();
+
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['mode', 'topic', 'answered', 'total', 'score', 'name', 'email', 'photoURL', 'ts'])
+        && request.resource.data.mode in ['home', 'study', 'practice']
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.name is string && request.resource.data.name.size() <= 80
+        && request.resource.data.ts == request.time;
+
+      allow delete: if isAdmin();
+    }
+
     // Câu sai và lịch sử làm bài của từng người: chỉ chính người đó và quản lý xem được
     match /progress/{uid} {
       allow read: if isAdmin() || isOwner(uid);

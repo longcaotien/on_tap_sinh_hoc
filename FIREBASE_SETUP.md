@@ -41,6 +41,10 @@ Mở `https://longcaotien.github.io/on_tap_sinh_hoc/admin.html`, đăng nhập b
 - Bấm **Chi tiết** để xem lịch sử làm bài, các câu đang sai, và xoá điểm / xoá câu sai / xoá người dùng.
 - Tab **Bảng xếp hạng**: xem thứ hạng và xoá điểm của một người.
 - Tab **Câu hay sai**: câu nào đang có nhiều người sai nhất.
+- Ô **Bảo trì** ở đầu trang: bấm **Tắt web để bảo trì** thì mọi người học (kể cả đang mở trang) chỉ thấy màn hình "Trang đang bảo trì" kèm lời nhắn của bạn; bấm **Mở lại web** thì trang tự mở lại cho họ. Trang quản lý không bị ảnh hưởng.
+- Tab **Đang làm**: ai đang mở trang, đang ở trang chủ / ôn tập / kiểm tra, làm tới câu mấy và điểm hiện tại. Cập nhật chậm khoảng 20-60 giây.
+
+Hai tính năng trên dùng thêm hai bảng `settings` và `presence`, nên cũng cần Publish lại `firestore.rules`.
 
 ## 7. Bảng xếp hạng và ôn tập câu sai
 Hai tính năng này lưu thêm dữ liệu vào hai bảng `scores` (điểm, không chứa email) và `progress` (câu sai, lịch sử làm bài).

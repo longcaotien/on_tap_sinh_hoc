@@ -25,7 +25,9 @@
         .btn-block:hover { background: #ffe4e6; }
         .btn-unblock { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
         .btn-unblock:hover { background: #d1fae5; }
-        input[type="email"], input[type="password"], input[type="search"] {
+        .live-dot { width: .6rem; height: .6rem; border-radius: 999px; background: #10b981; box-shadow: 0 0 0 4px rgba(16,185,129,.2); display: inline-block; flex-shrink: 0; }
+        .btn:disabled { opacity: .6; cursor: default; }
+        input[type="email"], input[type="password"], input[type="search"], input[type="text"] {
             width: 100%; height: 2.75rem; padding: 0 .9rem; border: 1px solid #cfe0d4; border-radius: .75rem; background: #fff; font-size: .95rem;
         }
         select { height: 2.5rem; padding: 0 .7rem; border: 1px solid #cfe0d4; border-radius: .75rem; background: #fff; font-size: .875rem; font-weight: 600; }
@@ -97,8 +99,31 @@
         </header>
 
         <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-5">
-            <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" aria-label="Thống kê">
+            <!-- Bật / tắt bảo trì -->
+            <section id="maint-card" class="card p-4 sm:p-5" aria-label="Bảo trì trang">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div id="maint-icon" class="w-11 h-11 shrink-0 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg"><i class="fa-solid fa-globe"></i></div>
+                        <div class="min-w-0">
+                            <div id="maint-title" class="font-extrabold">Web đang mở</div>
+                            <div id="maint-sub" class="text-sm text-slate-600">Người học vào làm bài bình thường.</div>
+                        </div>
+                    </div>
+                    <button id="maint-btn" type="button" class="btn btn-block shrink-0">Tắt web để bảo trì</button>
+                </div>
+                <div class="mt-4">
+                    <label class="block text-sm font-semibold" for="maint-msg">Lời nhắn hiện cho người học khi bảo trì (không bắt buộc)</label>
+                    <div class="mt-1.5 flex flex-col sm:flex-row gap-2">
+                        <input id="maint-msg" type="text" maxlength="300" placeholder="Ví dụ: Đang cập nhật câu hỏi, mở lại lúc 20:00." class="flex-1">
+                        <button id="maint-save" type="button" class="btn btn-soft shrink-0">Lưu lời nhắn</button>
+                    </div>
+                    <p id="maint-status" role="status" class="mt-2 text-sm text-slate-600 min-h-[1.25rem]"></p>
+                </div>
+            </section>
+
+            <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3" aria-label="Thống kê">
                 <div class="card p-4"><div class="text-xs text-slate-500">Tổng người dùng</div><div id="stat-total" class="mt-1 text-2xl font-extrabold">0</div></div>
+                <div class="card p-4"><div class="text-xs text-slate-500">Đang trực tuyến</div><div class="mt-1 text-2xl font-extrabold text-emerald-700 flex items-center gap-2"><span class="live-dot"></span><span id="stat-online">0</span></div></div>
                 <div class="card p-4"><div class="text-xs text-slate-500">Vào trong 24 giờ</div><div id="stat-active" class="mt-1 text-2xl font-extrabold">0</div></div>
                 <div class="card p-4"><div class="text-xs text-slate-500">Mới trong 7 ngày</div><div id="stat-new" class="mt-1 text-2xl font-extrabold">0</div></div>
                 <div class="card p-4"><div class="text-xs text-slate-500">Đang bị chặn</div><div id="stat-blocked" class="mt-1 text-2xl font-extrabold text-rose-700">0</div></div>
@@ -108,6 +133,7 @@
 
             <div class="flex gap-2 overflow-x-auto" role="tablist" aria-label="Mục quản lý">
                 <button type="button" role="tab" data-tab="users" aria-selected="true" class="btn btn-primary shrink-0"><i class="fa-solid fa-users mr-1.5"></i>Người dùng</button>
+                <button type="button" role="tab" data-tab="live" aria-selected="false" class="btn btn-soft shrink-0"><i class="fa-solid fa-tower-broadcast mr-1.5"></i>Đang làm</button>
                 <button type="button" role="tab" data-tab="rank" aria-selected="false" class="btn btn-soft shrink-0"><i class="fa-solid fa-trophy mr-1.5"></i>Bảng xếp hạng</button>
                 <button type="button" role="tab" data-tab="missed" aria-selected="false" class="btn btn-soft shrink-0"><i class="fa-solid fa-circle-question mr-1.5"></i>Câu hay sai</button>
             </div>
@@ -147,6 +173,20 @@
                 </div>
                 <div id="rows"></div>
                 <p id="empty" hidden class="p-8 text-center text-sm text-slate-500"></p>
+            </section>
+
+            <!-- Tab: Đang làm -->
+            <section id="tab-live" hidden class="card overflow-hidden">
+                <div class="p-4">
+                    <h2 class="font-extrabold">Người dùng đang làm gì</h2>
+                    <p class="mt-1 text-sm text-slate-600">Tự cập nhật. Mỗi người báo về khoảng 20-60 giây một lần khi đang mở trang, nên số câu và điểm có thể chậm hơn thực tế một chút. Ai ngừng báo quá 2,5 phút được coi là đã rời đi.</p>
+                </div>
+                <div id="live-rows"></div>
+                <p id="live-empty" hidden class="p-8 text-center text-sm text-slate-500">Hiện không có ai đang mở trang.</p>
+                <div id="live-recent-wrap" hidden>
+                    <h3 class="px-4 pt-4 pb-2 text-sm font-extrabold border-t border-[#e6f1ea]">Vừa rời đi (trong 1 giờ qua)</h3>
+                    <div id="live-recent"></div>
+                </div>
             </section>
 
             <!-- Tab: Bảng xếp hạng -->
@@ -192,7 +232,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut }
             from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-        import { getFirestore, collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc }
+        import { getFirestore, collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, setDoc, serverTimestamp }
             from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
         const cfg = window.BIO_FIREBASE;
@@ -212,6 +252,8 @@
         let users = [];
         let scores = {};     // uid -> { best, attempts, lastScore, ... }
         let progress = {};   // uid -> { wrong: [], history: [] }
+        let presence = {};   // uid -> { mode, topic, answered, total, score, ts }
+        let site = { maintenance: false, message: '' };
         let filter = 'all';
         let tab = 'users';
         let detailId = null;
@@ -304,6 +346,21 @@
             unsubs.push(onSnapshot(collection(db, 'progress'), (snap) => {
                 progress = {}; snap.docs.forEach((d) => { progress[d.id] = d.data(); }); renderAll();
             }, extraError));
+
+            // Bảo trì và hoạt động trực tiếp cũng cần firestore.rules bản mới
+            const liveError = (err) => {
+                $('data-error').textContent = err.code === 'permission-denied'
+                    ? 'Chưa dùng được "Bảo trì" và "Đang làm": hãy dán firestore.rules bản mới vào Firebase Console → Firestore Database → Rules → Publish.'
+                    : 'Không tải được trạng thái trang (' + (err.code || 'lỗi không rõ') + ').';
+            };
+            unsubs.push(onSnapshot(collection(db, 'presence'), (snap) => {
+                presence = {}; snap.docs.forEach((d) => { presence[d.id] = d.data({ serverTimestamps: 'estimate' }); }); renderAll();
+            }, liveError));
+            unsubs.push(onSnapshot(doc(db, 'settings', 'site'), (s) => {
+                const d = s.data() || {};
+                site = { maintenance: d.maintenance === true, message: typeof d.message === 'string' ? d.message : '' };
+                renderSite(true);
+            }, liveError));
         });
 
         // ---------- Tiện ích ----------
@@ -333,7 +390,106 @@
         }
 
         // ---------- Hiển thị ----------
+        // ---------- Bảo trì ----------
+        function renderSite(fillMessage) {
+            const on = site.maintenance;
+            $('maint-card').style.borderColor = on ? '#fcd34d' : '';
+            $('maint-card').style.background = on ? '#fffbeb' : '';
+            $('maint-icon').className = 'w-11 h-11 shrink-0 rounded-xl flex items-center justify-center text-lg ' + (on ? 'bg-amber-200 text-amber-800' : 'bg-emerald-100 text-emerald-700');
+            $('maint-icon').innerHTML = on ? '<i class="fa-solid fa-screwdriver-wrench"></i>' : '<i class="fa-solid fa-globe"></i>';
+            $('maint-title').textContent = on ? 'Web đang TẮT để bảo trì' : 'Web đang mở';
+            $('maint-sub').textContent = on
+                ? 'Người học chỉ thấy màn hình "Trang đang bảo trì" và không làm bài được.'
+                : 'Người học vào làm bài bình thường.';
+            $('maint-btn').textContent = on ? 'Mở lại web' : 'Tắt web để bảo trì';
+            $('maint-btn').className = 'btn shrink-0 ' + (on ? 'btn-primary' : 'btn-block');
+            if (fillMessage && document.activeElement !== $('maint-msg')) $('maint-msg').value = site.message;
+        }
+
+        async function saveSite(maintenance, okText) {
+            const status = $('maint-status');
+            $('maint-btn').disabled = true; $('maint-save').disabled = true;
+            status.className = 'mt-2 text-sm text-slate-600 min-h-[1.25rem]';
+            status.textContent = 'Đang lưu...';
+            try {
+                await setDoc(doc(db, 'settings', 'site'), {
+                    maintenance, message: $('maint-msg').value.trim().slice(0, 300), updatedAt: serverTimestamp()
+                });
+                status.textContent = okText;
+            } catch (err) {
+                status.className = 'mt-2 text-sm text-rose-700 min-h-[1.25rem]';
+                status.textContent = err.code === 'permission-denied'
+                    ? 'Không lưu được: cần Publish firestore.rules bản mới trong Firebase trước.'
+                    : 'Không lưu được (' + (err.code || 'lỗi không rõ') + ').';
+            }
+            $('maint-btn').disabled = false; $('maint-save').disabled = false;
+        }
+
+        $('maint-btn').addEventListener('click', () => {
+            const turnOn = !site.maintenance;
+            const n = onlineIds().length;
+            if (turnOn && !confirm('Tắt web để bảo trì?' + (n ? ' Hiện có ' + n + ' người đang mở trang, họ sẽ bị đưa ra màn hình bảo trì ngay.' : ''))) return;
+            saveSite(turnOn, turnOn ? 'Đã tắt web. Người học đang thấy màn hình bảo trì.' : 'Đã mở lại web.');
+        });
+        $('maint-save').addEventListener('click', () => saveSite(site.maintenance, 'Đã lưu lời nhắn.'));
+
+        // ---------- Đang làm ----------
+        const ONLINE_MS = 150 * 1000;
+        const isOnline = (id) => presence[id] && Date.now() - ms(presence[id].ts) < ONLINE_MS;
+        const onlineIds = () => Object.keys(presence).filter(isOnline);
+
+        function ago(t) {
+            const s = Math.max(0, Math.round((Date.now() - t) / 1000));
+            if (s < 45) return 'vừa xong';
+            if (s < 3600) return Math.round(s / 60) + ' phút trước';
+            return Math.round(s / 3600) + ' giờ trước';
+        }
+
+        function activityHtml(p) {
+            if (p.mode === 'practice' || p.mode === 'study') {
+                const topic = esc(TOPIC_NAMES[p.topic] || 'Cả 2 bài');
+                if (p.mode === 'study') return `<span class="font-semibold text-sky-800">Đang ôn tập</span> · ${topic}`;
+                const total = p.total || 0, done = Math.min(p.answered || 0, total);
+                return `<span class="font-semibold text-amber-800">Đang kiểm tra</span> · ${topic} · câu <b>${done}/${total}</b> · điểm <b>${fmtScore(p.score || 0)}</b>`
+                    + `<div class="bar mt-1.5" style="max-width:16rem"><i style="background:#059669;width:${total ? Math.round(done / total * 100) : 0}%"></i></div>`;
+            }
+            return '<span class="font-semibold text-slate-700">Ở trang chủ</span> · đang xem lý thuyết';
+        }
+
+        function liveRow(id, online) {
+            const p = presence[id];
+            const u = users.find((x) => x.id === id) || p;
+            return `
+                <div class="line-row">
+                    ${avatarHtml({ name: u.name || p.name, email: u.email || p.email, photoURL: u.photoURL || p.photoURL })}
+                    <div class="min-w-0 flex-1">
+                        <div class="font-bold truncate">${online ? '<span class="live-dot mr-2" style="width:.5rem;height:.5rem"></span>' : ''}${esc(u.name || p.name || '(chưa có tên)')}</div>
+                        <div class="text-sm text-slate-500 truncate">${esc(u.email || p.email || '')}</div>
+                        <div class="text-sm mt-1">${online ? activityHtml(p) : '<span class="text-slate-500">Lần cuối: ' + activityHtml(p) + '</span>'}</div>
+                    </div>
+                    <div class="shrink-0 text-right">
+                        <div class="text-xs text-slate-500">${ago(ms(p.ts))}</div>
+                        ${users.some((x) => x.id === id) ? `<button type="button" data-act="detail" data-id="${esc(id)}" class="btn btn-soft mt-1">Chi tiết</button>` : ''}
+                    </div>
+                </div>`;
+        }
+
+        function renderLive() {
+            const now = Date.now();
+            const byRecent = (a, b) => ms(presence[b].ts) - ms(presence[a].ts);
+            const online = onlineIds().sort(byRecent);
+            const recent = Object.keys(presence).filter((id) => !isOnline(id) && now - ms(presence[id].ts) < 3600 * 1000).sort(byRecent);
+            $('stat-online').textContent = online.length;
+            $('live-rows').innerHTML = online.map((id) => liveRow(id, true)).join('');
+            $('live-empty').hidden = online.length > 0;
+            $('live-recent').innerHTML = recent.map((id) => liveRow(id, false)).join('');
+            $('live-recent-wrap').hidden = recent.length === 0;
+        }
+        // Tự làm mới để ai ngừng báo về thì rời khỏi danh sách
+        setInterval(() => { if (!$('view-admin').hidden) { renderLive(); if (tab === 'users') renderUsers(); } }, 20000);
+
         function renderAll() {
+            renderLive();
             renderStats();
             renderUsers();
             renderRank();
@@ -393,7 +549,7 @@
                         <div class="span-all flex items-center gap-3 min-w-0">
                             ${avatarHtml(u)}
                             <div class="min-w-0">
-                                <div class="font-bold truncate">${esc(u.name || '(chưa có tên)')}</div>
+                                <div class="font-bold truncate">${isOnline(u.id) ? '<span class="live-dot mr-2" style="width:.5rem;height:.5rem" title="Đang trực tuyến"></span>' : ''}${esc(u.name || '(chưa có tên)')}</div>
                                 <div class="text-sm text-slate-500 truncate">${esc(u.email)}</div>
                             </div>
                         </div>
@@ -611,7 +767,7 @@
                 } else if (act === 'del-wrong') {
                     await deleteDoc(doc(db, 'progress', id));
                 } else if (act === 'del-user') {
-                    await Promise.all([deleteDoc(doc(db, 'scores', id)), deleteDoc(doc(db, 'progress', id))]);
+                    await Promise.all([deleteDoc(doc(db, 'scores', id)), deleteDoc(doc(db, 'progress', id)), deleteDoc(doc(db, 'presence', id))]);
                     await deleteDoc(doc(db, 'users', id));
                     closeDetail();
                 }
@@ -626,6 +782,8 @@
         }
         $('rows').addEventListener('click', handleAction);
         $('rank-rows').addEventListener('click', handleAction);
+        $('live-rows').addEventListener('click', handleAction);
+        $('live-recent').addEventListener('click', handleAction);
         $('detail-body').addEventListener('click', handleAction);
     </script>
 </body>
