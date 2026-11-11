@@ -7,7 +7,7 @@ window.BIO_FIREBASE = {
   apiKey: "AIzaSyAJs5FZggQcMF4U1Oz8WxMLbOd-AKK9Rrc",
   authDomain: "biomaster-df0b3.firebaseapp.com",
   projectId: "biomaster-df0b3",
-  appId: 1:230013550519:web:9738403f70f19cbd1e7232"
+  appId: "1:230013550519:web:9738403f70f19cbd1e7232"
 };
 
 // Email của tài khoản quản lý (tạo trong Firebase -> Authentication -> Users, kèm mật khẩu do bạn đặt).
