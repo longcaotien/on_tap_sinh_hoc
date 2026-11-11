@@ -225,8 +225,8 @@
                     Tiến độ: <span id="progress-count" class="font-extrabold text-bio-700">0/50</span>
                 </div>
                 <div class="h-4 w-[1px] bg-emerald-200"></div>
-                <div class="text-xs font-semibold text-bio-900">
-                    Đúng: <span id="correct-count" class="font-extrabold text-emerald-600">0</span>
+                <div class="text-xs font-semibold text-bio-900" title="Điểm quy đổi thang 10. Câu đã xem đáp án không được tính điểm.">
+                    Điểm: <span id="score-value" class="font-extrabold text-emerald-600">0</span><span class="text-slate-500">/10</span>
                 </div>
                 <button onclick="resetPractice()" title="Làm lại từ đầu" class="text-xs text-slate-400 hover:text-rose-600 transition-colors ml-1">
                     <i class="fa-solid fa-rotate-right"></i>
@@ -544,7 +544,7 @@
                     <div id="mini-score" class="hidden xl:hidden items-center gap-2 bg-amber-50 border border-amber-200 text-amber-900 px-2.5 py-1.5 rounded-xl text-xs font-extrabold shrink-0">
                         <span id="mini-progress">0/50</span>
                         <span class="text-amber-300">|</span>
-                        <span class="text-emerald-700"><i class="fa-solid fa-check mr-0.5"></i><span id="mini-correct">0</span></span>
+                        <span class="text-emerald-700" title="Điểm quy đổi thang 10"><i class="fa-solid fa-star mr-0.5"></i><span id="mini-score-value">0</span>/10</span>
                     </div>
                     <button id="toolbar-toggle" onclick="toggleToolbar()" aria-expanded="true" aria-controls="toolbar-body"
                             class="shrink-0 h-10 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold text-xs flex items-center gap-2 transition-colors">
@@ -1627,6 +1627,41 @@
             sa: {}   // { uid: selectedNumber }
         };
 
+        // Các câu trắc nghiệm đã bấm "Hiện đáp án" mà chưa chọn: bị khoá và KHÔNG được tính điểm
+        let revealedMCQ = {}; // { uid: true }
+
+        // Cách tính điểm (theo cấu trúc đề thi tốt nghiệp THPT), quy đổi về thang 10
+        const SCORING = {
+            mcq: 0.25,                       // Phần I: mỗi câu đúng
+            sa: 0.25,                        // Phần III: mỗi câu đúng
+            tfLadder: [0, 0.1, 0.25, 0.5, 1],// Phần II: đúng 0/1/2/3/4 ý trong 1 câu
+            scale: 10
+        };
+
+        function clearAnswers() {
+            userAnswers = { mcq: {}, tf: {}, sa: {} };
+            revealedMCQ = {};
+        }
+
+        // Điểm của 1 câu Đúng/Sai theo số ý đúng (câu có số ý khác 4 thì chia theo tỉ lệ)
+        function tfQuestionPoints(correct, total) {
+            if (total === 4) return SCORING.tfLadder[correct];
+            return total ? (correct / total) * SCORING.tfLadder[4] : 0;
+        }
+
+        // Trả về { done, correct } của 1 câu Đúng/Sai; chỉ "done" khi đã chọn đủ mọi ý
+        function getTFState(q) {
+            let answered = 0, correct = 0;
+            q.statements.forEach(st => {
+                const v = userAnswers.tf[`${q.uid}_${st.label}`];
+                if (v !== undefined) {
+                    answered++;
+                    if (v === st.isTrue) correct++;
+                }
+            });
+            return { done: answered === q.statements.length, correct, total: q.statements.length };
+        }
+
         // Khởi tạo dữ liệu gốc
         function initActiveData() {
             activeMCQData = originalMCQData.map(q => ({
@@ -1656,7 +1691,7 @@
         // Hàm Xáo trộn Toàn bộ Câu hỏi VÀ Đáp án ABCD
         function shuffleAllQuestionsAndOptions() {
             isShuffled = true;
-            userAnswers = { mcq: {}, tf: {}, sa: {} };
+            clearAnswers();
 
             // 1. Xáo trộn thứ tự các câu Phần I và xáo trộn luôn vị trí A, B, C, D bên trong mỗi câu
             const shuffledMCQs = shuffleArray(originalMCQData).map(q => {
@@ -1715,7 +1750,7 @@
         // Khôi phục thứ tự gốc của đề cương
         function restoreOriginalOrder() {
             isShuffled = false;
-            userAnswers = { mcq: {}, tf: {}, sa: {} };
+            clearAnswers();
             initActiveData();
             document.getElementById('shuffle-badge').classList.add('hidden');
             document.getElementById('btn-restore-order').classList.add('hidden');
@@ -1819,8 +1854,8 @@
                 modeIcon.innerHTML = `<i class="fa-solid fa-bolt-lightning"></i>`;
                 modeTitle.textContent = "Chế độ kiểm tra phản xạ";
                 modePill.className = "inline-block font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300";
-                modePill.textContent = "Bấm là hiện đáp án liền";
-                modeDesc.textContent = "Hãy bấm chọn trực tiếp vào phương án A, B, C, D hoặc Đúng/Sai — hệ thống sẽ chấm và mở giải thích ngay lập tức!";
+                modePill.textContent = "Chọn một lần, khoá ngay";
+                modeDesc.textContent = "Bấm chọn phương án A, B, C, D hoặc Đúng/Sai — hệ thống chấm và mở giải thích ngay, không được chọn lại. Câu bấm \"Hiện đáp án\" sẽ không được tính điểm.";
             }
 
             renderAllQuestions();
@@ -1850,7 +1885,9 @@
             container.innerHTML = filtered.map((q, displayIdx) => {
                 const userChoice = userAnswers.mcq[q.uid];
                 const isAnswered = userChoice !== undefined;
-                const showAnswer = isStudy || isAnswered;
+                const isRevealed = !isAnswered && revealedMCQ[q.uid] === true;
+                const isLocked = isAnswered || isRevealed;
+                const showAnswer = isStudy || isLocked;
 
                 const optionsHTML = q.options.map((optText, idx) => {
                     const isCorrectOpt = idx === q.correct;
@@ -1868,13 +1905,15 @@
                             btnClass += "bg-white/60 border-slate-200 text-slate-500 font-normal opacity-80 disabled-opt";
                         }
                     } else {
-                        if (!isAnswered) {
+                        if (!isLocked) {
                             btnClass += "bg-white hover:bg-bio-50/70 border-slate-200 hover:border-bio-400 text-slate-700 font-medium cursor-pointer shadow-sm";
                             badgeHTML = `<span class="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center text-xs font-bold text-slate-400 shrink-0">${labelLetter}</span>`;
                         } else {
                             if (isCorrectOpt) {
                                 btnClass += "bg-emerald-50 border-2 border-emerald-500 text-emerald-950 font-extrabold shadow-sm disabled-opt";
-                                badgeHTML = `<span class="shrink-0 inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-600 text-white"><i class="fa-solid fa-check"></i> Đúng</span>`;
+                                badgeHTML = isRevealed
+                                    ? `<span class="shrink-0 inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-600 text-white"><i class="fa-solid fa-check"></i> Đáp án</span>`
+                                    : `<span class="shrink-0 inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-600 text-white"><i class="fa-solid fa-check"></i> Đúng</span>`;
                             } else if (isSelectedOpt && !isCorrectOpt) {
                                 btnClass += "bg-rose-50 border-2 border-rose-500 text-rose-900 font-bold disabled-opt";
                                 badgeHTML = `<span class="shrink-0 inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg bg-rose-600 text-white"><i class="fa-solid fa-xmark"></i> Sai</span>`;
@@ -1884,7 +1923,8 @@
                         }
                     }
 
-                    const clickAttr = !isStudy ? `onclick="selectMCQ('${q.uid}', ${idx})"` : "";
+                    // Chỉ cho bấm khi câu chưa được chọn và chưa xem đáp án
+                    const clickAttr = (!isStudy && !isLocked) ? `onclick="selectMCQ('${q.uid}', ${idx})"` : "disabled";
                     return `
                         <button ${clickAttr} class="${btnClass}">
                             <span><strong class="${isCorrectOpt && showAnswer ? 'text-emerald-700' : 'text-bio-700'} mr-1.5">${labelLetter}.</strong> ${optText}</span>
@@ -1909,10 +1949,15 @@
                                 </span>
                             </div>
 
-                            ${!isStudy && !isAnswered ? `
-                                <button onclick="selectMCQ('${q.uid}', ${q.correct})" class="text-xs font-bold text-bio-700 hover:text-bio-900 bg-bio-50 hover:bg-bio-100 px-3 py-1.5 rounded-lg border border-bio-200 transition-colors">
-                                    <i class="fa-regular fa-eye mr-1"></i> Hiện đáp án liền
+                            ${!isStudy && !isLocked ? `
+                                <button onclick="revealMCQ('${q.uid}')" title="Xem đáp án, câu này sẽ không được tính điểm" class="text-xs font-bold text-bio-700 hover:text-bio-900 bg-bio-50 hover:bg-bio-100 px-3 py-1.5 rounded-lg border border-bio-200 transition-colors">
+                                    <i class="fa-regular fa-eye mr-1"></i> Hiện đáp án<span class="hidden sm:inline font-semibold text-slate-500"> · không tính điểm</span>
                                 </button>
+                            ` : ''}
+                            ${isRevealed ? `
+                                <span class="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-300">
+                                    <i class="fa-regular fa-eye mr-1"></i> Đã xem đáp án · 0 điểm
+                                </span>
                             ` : ''}
                         </div>
 
@@ -1986,8 +2031,10 @@
                     }
 
                     const textStyle = showStAnswer ? "font-bold text-slate-900" : "font-medium text-slate-700";
-                    const clickTrue = !isStudy ? `onclick="selectTF('${q.uid}', '${st.label}', true)"` : "";
-                    const clickFalse = !isStudy ? `onclick="selectTF('${q.uid}', '${st.label}', false)"` : "";
+                    // Đã chọn một ý thì khoá luôn, không cho đổi lại
+                    const canClickTF = !isStudy && !isAnswered;
+                    const clickTrue = canClickTF ? `onclick="selectTF('${q.uid}', '${st.label}', true)"` : "disabled";
+                    const clickFalse = canClickTF ? `onclick="selectTF('${q.uid}', '${st.label}', false)"` : "disabled";
 
                     return `
                         <div class="p-4 rounded-xl bg-white border ${showStAnswer ? (st.isTrue ? 'border-emerald-300 bg-emerald-50/30' : 'border-rose-300 bg-rose-50/20') : 'border-slate-200'} space-y-2.5 transition-all">
@@ -2029,6 +2076,19 @@
                     ? 'bg-emerald-100 text-emerald-800 border-emerald-300' 
                     : 'bg-cyan-100 text-cyan-800 border-cyan-300';
 
+                // Khi đã chọn đủ các ý thì hiện điểm của câu (điểm tăng dần theo số ý đúng)
+                let tfScoreChipHTML = '';
+                if (!isStudy) {
+                    const tfState = getTFState(q);
+                    if (tfState.done) {
+                        const pts = tfQuestionPoints(tfState.correct, tfState.total);
+                        const chipColor = tfState.correct === tfState.total
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                            : 'bg-amber-100 text-amber-800 border-amber-300';
+                        tfScoreChipHTML = `<span class="ml-auto text-xs font-extrabold px-2.5 py-1 rounded-lg border ${chipColor}">Đúng ${tfState.correct}/${tfState.total} ý · ${pts.toLocaleString('vi-VN')} điểm</span>`;
+                    }
+                }
+
                 let diagramHTML = '';
                 if (q.diagramType === 'potatoGraph') diagramHTML = getPotatoGraphSVG();
                 if (q.diagramType === 'digestiveSystem') diagramHTML = getDigestiveSystemSVG();
@@ -2042,6 +2102,7 @@
                             <span class="text-xs font-bold px-2.5 py-1 rounded-lg border ${topicBadgeColor}">
                                 ${q.topicBadge}
                             </span>
+                            ${tfScoreChipHTML}
                         </div>
 
                         <h4 class="font-bold text-slate-800 text-base sm:text-lg leading-relaxed">${q.prompt}</h4>
@@ -2119,7 +2180,8 @@
                         }
                     }
 
-                    const clickAttr = !isStudy ? `onclick="selectSA('${q.uid}', ${num})"` : "";
+                    // Đã chọn thì khoá luôn, không cho chọn lại
+                    const clickAttr = (!isStudy && !isAnswered) ? `onclick="selectSA('${q.uid}', ${num})"` : "disabled";
                     numberButtonsHTML += `<button ${clickAttr} class="${numBtnClass}">${num}</button>`;
                 }
 
@@ -2181,19 +2243,32 @@
         // =========================================================================
         // 8. SỰ KIỆN TƯƠNG TÁC 1 CHẠM
         // =========================================================================
+        // Mỗi câu / mỗi ý chỉ được chọn một lần: đã chọn (hoặc đã xem đáp án) thì bỏ qua mọi lần bấm sau
         function selectMCQ(uid, optionIndex) {
+            if (userAnswers.mcq[uid] !== undefined || revealedMCQ[uid]) return;
             userAnswers.mcq[uid] = optionIndex;
             renderMCQs();
             updateScoreUI();
         }
 
+        // Hiện đáp án mà không chọn: câu bị khoá và không được tính điểm
+        function revealMCQ(uid) {
+            if (userAnswers.mcq[uid] !== undefined || revealedMCQ[uid]) return;
+            revealedMCQ[uid] = true;
+            renderMCQs();
+            updateScoreUI();
+        }
+
         function selectTF(uid, label, boolVal) {
-            userAnswers.tf[`${uid}_${label}`] = boolVal;
+            const key = `${uid}_${label}`;
+            if (userAnswers.tf[key] !== undefined) return;
+            userAnswers.tf[key] = boolVal;
             renderTFs();
             updateScoreUI();
         }
 
         function selectSA(uid, numVal) {
+            if (userAnswers.sa[uid] !== undefined) return;
             userAnswers.sa[uid] = numVal;
             renderSAs();
             updateScoreUI();
@@ -2205,52 +2280,54 @@
             const filteredSA = activeSAData.filter(q => currentTopic === 'all' || q.topic === currentTopic);
 
             const totalQuestions = filteredMCQ.length + filteredTF.length + filteredSA.length;
-            let answeredCount = 0;
-            let correctCount = 0;
+            let answeredCount = 0;   // số câu đã xong (đã làm hoặc đã xem đáp án)
+            let earnedPoints = 0;    // điểm thô đã đạt
+            const maxPoints = filteredMCQ.length * SCORING.mcq
+                            + filteredTF.length * SCORING.tfLadder[4]
+                            + filteredSA.length * SCORING.sa;
 
             filteredMCQ.forEach(q => {
-                if (userAnswers.mcq[q.uid] !== undefined) {
+                const choice = userAnswers.mcq[q.uid];
+                if (choice !== undefined) {
                     answeredCount++;
-                    if (userAnswers.mcq[q.uid] === q.correct) correctCount++;
+                    if (choice === q.correct) earnedPoints += SCORING.mcq;
+                } else if (revealedMCQ[q.uid]) {
+                    answeredCount++; // đã xem đáp án: tính vào tiến độ nhưng 0 điểm
                 }
             });
 
             filteredTF.forEach(q => {
-                let anyAnswered = false;
-                let allCorrect = true;
-                q.statements.forEach(st => {
-                    const v = userAnswers.tf[`${q.uid}_${st.label}`];
-                    if (v !== undefined) {
-                        anyAnswered = true;
-                        if (v !== st.isTrue) allCorrect = false;
-                    } else {
-                        allCorrect = false;
-                    }
-                });
-                if (anyAnswered) answeredCount++;
-                if (allCorrect) correctCount++;
-            });
-
-            filteredSA.forEach(q => {
-                if (userAnswers.sa[q.uid] !== undefined) {
+                const s = getTFState(q);
+                if (s.done) {
                     answeredCount++;
-                    if (userAnswers.sa[q.uid] === q.correctAnswer) correctCount++;
+                    earnedPoints += tfQuestionPoints(s.correct, s.total);
                 }
             });
 
+            filteredSA.forEach(q => {
+                const v = userAnswers.sa[q.uid];
+                if (v !== undefined) {
+                    answeredCount++;
+                    if (v === q.correctAnswer) earnedPoints += SCORING.sa;
+                }
+            });
+
+            const score10 = maxPoints ? (earnedPoints / maxPoints) * SCORING.scale : 0;
+            const scoreText = score10.toLocaleString('vi-VN', { maximumFractionDigits: 2 });
+
             document.getElementById('progress-count').textContent = `${answeredCount}/${totalQuestions}`;
-            document.getElementById('correct-count').textContent = correctCount;
+            document.getElementById('score-value').textContent = scoreText;
             const mp = document.getElementById('mini-progress');
             if (mp) {
                 mp.textContent = `${answeredCount}/${totalQuestions}`;
-                document.getElementById('mini-correct').textContent = correctCount;
+                document.getElementById('mini-score-value').textContent = scoreText;
                 document.getElementById('toolbar-bar-fill').style.width = (totalQuestions ? answeredCount / totalQuestions * 100 : 0) + '%';
                 updateToolbarSummary();
             }
         }
 
         function resetPractice() {
-            userAnswers = { mcq: {}, tf: {}, sa: {} };
+            clearAnswers();
             renderAllQuestions();
             updateScoreUI();
         }
