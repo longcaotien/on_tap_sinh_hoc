@@ -37,6 +37,16 @@ Nếu email quản lý là Gmail thật và bạn từng đăng nhập Google b�
 Mở `https://longcaotien.github.io/on_tap_sinh_hoc/admin.html`, đăng nhập bằng email và mật khẩu ở bước 3. Tại đây bạn:
 - Xem danh sách người đã đăng nhập, số lần vào, lần đầu và lần gần nhất.
 - Bấm **Chặn** / **Bỏ chặn**. Người đang mở trang bị chặn sẽ bị đưa ra màn hình "Tài khoản đã bị chặn" gần như ngay lập tức.
+- Xem điểm cao nhất, số lượt làm, số câu sai của từng người; sắp xếp, lọc, và **Xuất Excel (CSV)**.
+- Bấm **Chi tiết** để xem lịch sử làm bài, các câu đang sai, và xoá điểm / xoá câu sai / xoá người dùng.
+- Tab **Bảng xếp hạng**: xem thứ hạng và xoá điểm của một người.
+- Tab **Câu hay sai**: câu nào đang có nhiều người sai nhất.
+
+## 7. Bảng xếp hạng và ôn tập câu sai
+Hai tính năng này lưu thêm dữ liệu vào hai bảng `scores` (điểm, không chứa email) và `progress` (câu sai, lịch sử làm bài).
+**Mỗi khi `firestore.rules` thay đổi, phải dán lại toàn bộ file vào Firestore Database → Rules → Publish**, nếu không bảng xếp hạng và trang quản lý sẽ báo thiếu quyền. Khi chưa Publish, câu sai vẫn được lưu trên máy của người học.
+
+Điểm được tính trên trình duyệt của người học rồi gửi lên, nên người rành kỹ thuật có thể tự gửi điểm giả (tối đa 10). Thấy điểm bất thường thì dùng **Xoá điểm** trong trang quản lý.
 
 ## Lưu ý
 - Người dùng mở web trong Zalo/Facebook sẽ không đăng nhập Google được (Google không cho). Trang sẽ nhắc họ mở bằng Chrome/Safari.

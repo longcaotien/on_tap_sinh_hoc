@@ -28,15 +28,26 @@
         input[type="email"], input[type="password"], input[type="search"] {
             width: 100%; height: 2.75rem; padding: 0 .9rem; border: 1px solid #cfe0d4; border-radius: .75rem; background: #fff; font-size: .95rem;
         }
-        .user-row { display: grid; grid-template-columns: 1fr; gap: .6rem; padding: .9rem 1rem; border-top: 1px solid #e6f1ea; align-items: center; }
-        @media (min-width: 768px) {
-            .user-row { grid-template-columns: minmax(0, 2.2fr) 5rem 9.5rem 9.5rem 6.5rem 7.5rem; gap: 1rem; }
+        select { height: 2.5rem; padding: 0 .7rem; border: 1px solid #cfe0d4; border-radius: .75rem; background: #fff; font-size: .875rem; font-weight: 600; }
+        .user-row { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem .75rem; padding: .9rem 1rem; border-top: 1px solid #e6f1ea; align-items: center; }
+        .user-row > .span-all { grid-column: 1 / -1; }
+        @media (min-width: 1024px) {
+            .user-row { grid-template-columns: minmax(0, 2.2fr) 4rem 6.5rem 4.5rem 4.5rem 8.5rem 5.5rem 11rem; gap: 1rem; }
+            .user-row > .span-all { grid-column: auto; }
             .user-head { display: grid; }
         }
-        .user-head { display: none; grid-template-columns: minmax(0, 2.2fr) 5rem 9.5rem 9.5rem 6.5rem 7.5rem; gap: 1rem; padding: .7rem 1rem;
+        .user-head { display: none; grid-template-columns: minmax(0, 2.2fr) 4rem 6.5rem 4.5rem 4.5rem 8.5rem 5.5rem 11rem; gap: 1rem; padding: .7rem 1rem;
                      font-size: .75rem; font-weight: 700; color: #5b7066; }
         .cell-label { color: #5b7066; font-size: .75rem; }
-        @media (min-width: 768px) { .cell-label { display: none; } }
+        @media (min-width: 1024px) { .cell-label { display: none; } }
+        .line-row { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; border-top: 1px solid #e6f1ea; }
+        .bar { height: .5rem; border-radius: 999px; background: #e6f1ea; overflow: hidden; }
+        .bar > i { display: block; height: 100%; background: #e11d48; border-radius: 999px; }
+        #detail { position: fixed; inset: 0; z-index: 50; background: rgba(13,43,34,.45); display: flex; align-items: flex-end; justify-content: center; }
+        #detail-card { background: #fff; width: 100%; max-width: 38rem; max-height: 90vh; display: flex; flex-direction: column; border-radius: 1.25rem 1.25rem 0 0; }
+        @media (min-width: 640px) { #detail { align-items: center; padding: 1.25rem; } #detail-card { border-radius: 1.25rem; } }
+        .btn-danger { background: #be123c; color: #fff; }
+        .btn-danger:hover { background: #9f1239; }
     </style>
 </head>
 <body class="min-h-screen">
@@ -74,45 +85,114 @@
                         <i class="fa-solid fa-user-shield"></i>
                     </div>
                     <div class="min-w-0">
-                        <div class="font-extrabold leading-tight">Quản lý người dùng</div>
+                        <div class="font-extrabold leading-tight">Trang quản lý</div>
                         <div id="admin-who" class="text-xs text-slate-500 truncate"></div>
                     </div>
                 </div>
-                <button id="logout-btn" type="button" class="btn btn-soft shrink-0"><i class="fa-solid fa-right-from-bracket mr-1.5"></i>Đăng xuất</button>
+                <div class="flex items-center gap-2 shrink-0">
+                    <a href="./" class="btn btn-soft inline-flex items-center"><i class="fa-solid fa-arrow-up-right-from-square sm:mr-1.5"></i><span class="hidden sm:inline">Trang làm bài</span></a>
+                    <button id="logout-btn" type="button" class="btn btn-soft"><i class="fa-solid fa-right-from-bracket sm:mr-1.5"></i><span class="hidden sm:inline">Đăng xuất</span></button>
+                </div>
             </div>
         </header>
 
         <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-5">
-            <section class="grid grid-cols-3 gap-3" aria-label="Thống kê">
+            <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" aria-label="Thống kê">
                 <div class="card p-4"><div class="text-xs text-slate-500">Tổng người dùng</div><div id="stat-total" class="mt-1 text-2xl font-extrabold">0</div></div>
                 <div class="card p-4"><div class="text-xs text-slate-500">Vào trong 24 giờ</div><div id="stat-active" class="mt-1 text-2xl font-extrabold">0</div></div>
+                <div class="card p-4"><div class="text-xs text-slate-500">Mới trong 7 ngày</div><div id="stat-new" class="mt-1 text-2xl font-extrabold">0</div></div>
                 <div class="card p-4"><div class="text-xs text-slate-500">Đang bị chặn</div><div id="stat-blocked" class="mt-1 text-2xl font-extrabold text-rose-700">0</div></div>
+                <div class="card p-4"><div class="text-xs text-slate-500">Lượt làm xong</div><div id="stat-attempts" class="mt-1 text-2xl font-extrabold">0</div></div>
+                <div class="card p-4"><div class="text-xs text-slate-500">Điểm cao nhất TB</div><div id="stat-avg" class="mt-1 text-2xl font-extrabold text-emerald-700">—</div></div>
             </section>
 
-            <section class="card overflow-hidden">
-                <div class="p-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-                    <input id="search" type="search" placeholder="Tìm theo tên hoặc email" class="sm:max-w-xs" aria-label="Tìm người dùng">
-                    <div class="flex gap-2" role="group" aria-label="Lọc">
+            <div class="flex gap-2 overflow-x-auto" role="tablist" aria-label="Mục quản lý">
+                <button type="button" role="tab" data-tab="users" aria-selected="true" class="btn btn-primary shrink-0"><i class="fa-solid fa-users mr-1.5"></i>Người dùng</button>
+                <button type="button" role="tab" data-tab="rank" aria-selected="false" class="btn btn-soft shrink-0"><i class="fa-solid fa-trophy mr-1.5"></i>Bảng xếp hạng</button>
+                <button type="button" role="tab" data-tab="missed" aria-selected="false" class="btn btn-soft shrink-0"><i class="fa-solid fa-circle-question mr-1.5"></i>Câu hay sai</button>
+            </div>
+
+            <p id="data-error" role="alert" class="text-sm text-rose-700"></p>
+
+            <!-- Tab: Người dùng -->
+            <section id="tab-users" class="card overflow-hidden">
+                <div class="p-4 space-y-3">
+                    <div class="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+                        <input id="search" type="search" placeholder="Tìm theo tên hoặc email" class="lg:max-w-xs" aria-label="Tìm người dùng">
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <label class="text-sm text-slate-600" for="sort">Sắp xếp</label>
+                            <select id="sort">
+                                <option value="lastSeen">Vào gần nhất</option>
+                                <option value="firstSeen">Mới tham gia</option>
+                                <option value="best">Điểm cao nhất</option>
+                                <option value="attempts">Nhiều lượt làm</option>
+                                <option value="visits">Nhiều lần vào</option>
+                                <option value="wrong">Nhiều câu sai</option>
+                                <option value="name">Tên A-Z</option>
+                            </select>
+                            <button id="export-btn" type="button" class="btn btn-soft"><i class="fa-solid fa-file-arrow-down mr-1.5"></i>Xuất Excel (CSV)</button>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2" role="group" aria-label="Lọc">
                         <button type="button" data-filter="all" class="btn btn-primary">Tất cả</button>
+                        <button type="button" data-filter="active" class="btn btn-soft">Vào trong 24 giờ</button>
+                        <button type="button" data-filter="noscore" class="btn btn-soft">Chưa làm bài</button>
                         <button type="button" data-filter="blocked" class="btn btn-soft">Đang bị chặn</button>
                     </div>
+                    <p id="list-count" class="text-xs text-slate-500"></p>
                 </div>
 
                 <div class="user-head">
-                    <div>Người dùng</div><div>Số lần vào</div><div>Lần đầu</div><div>Gần nhất</div><div>Trạng thái</div><div></div>
+                    <div>Người dùng</div><div>Lần vào</div><div>Điểm cao nhất</div><div>Lượt làm</div><div>Câu sai</div><div>Gần nhất</div><div>Trạng thái</div><div></div>
                 </div>
                 <div id="rows"></div>
                 <p id="empty" hidden class="p-8 text-center text-sm text-slate-500"></p>
             </section>
-            <p id="data-error" role="alert" class="text-sm text-rose-700"></p>
+
+            <!-- Tab: Bảng xếp hạng -->
+            <section id="tab-rank" hidden class="card overflow-hidden">
+                <div class="p-4">
+                    <h2 class="font-extrabold">Bảng xếp hạng</h2>
+                    <p class="mt-1 text-sm text-slate-600">Điểm cao nhất của một lượt Kiểm tra đã làm hết câu. Bấm "Xoá điểm" để đưa một người ra khỏi bảng (họ sẽ lên lại khi làm xong lượt mới).</p>
+                </div>
+                <div id="rank-rows"></div>
+                <p id="rank-empty" hidden class="p-8 text-center text-sm text-slate-500">Chưa có ai hoàn thành lượt kiểm tra nào.</p>
+            </section>
+
+            <!-- Tab: Câu hay sai -->
+            <section id="tab-missed" hidden class="card overflow-hidden">
+                <div class="p-4">
+                    <h2 class="font-extrabold">Câu hay bị sai nhất</h2>
+                    <p class="mt-1 text-sm text-slate-600">Số người đang có câu này trong danh sách câu sai (làm đúng lại thì câu rời danh sách). Dùng để biết phần nào cần giảng lại.</p>
+                </div>
+                <div id="missed-rows"></div>
+                <p id="missed-empty" hidden class="p-8 text-center text-sm text-slate-500">Chưa có dữ liệu câu sai.</p>
+            </section>
         </main>
+    </div>
+
+    <!-- Chi tiết một người dùng -->
+    <div id="detail" hidden role="dialog" aria-modal="true" aria-labelledby="detail-name">
+        <div id="detail-card">
+            <div class="flex items-start justify-between gap-3 p-4 border-b border-[#e6f1ea]">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div id="detail-avatar"></div>
+                    <div class="min-w-0">
+                        <h2 id="detail-name" class="font-extrabold truncate"></h2>
+                        <div id="detail-email" class="text-sm text-slate-500 break-all"></div>
+                    </div>
+                </div>
+                <button id="detail-close" type="button" aria-label="Đóng" class="btn btn-soft shrink-0 !px-0 w-11 !h-11"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="detail-body" class="p-4 overflow-y-auto space-y-5"></div>
+        </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut }
             from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-        import { getFirestore, collection, query, orderBy, onSnapshot, doc, updateDoc }
+        import { getFirestore, collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc }
             from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
         const cfg = window.BIO_FIREBASE;
@@ -130,8 +210,12 @@
         const db = getFirestore(app);
 
         let users = [];
+        let scores = {};     // uid -> { best, attempts, lastScore, ... }
+        let progress = {};   // uid -> { wrong: [], history: [] }
         let filter = 'all';
-        let unsubUsers = null;
+        let tab = 'users';
+        let detailId = null;
+        let unsubs = [];
 
         const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         const toDate = (t) => (t && typeof t.toDate === 'function') ? t.toDate() : null;
@@ -175,10 +259,13 @@
 
         $('logout-btn').addEventListener('click', () => signOut(auth));
 
+        function stopListening() { unsubs.forEach((u) => u()); unsubs = []; }
+
         onAuthStateChanged(auth, (user) => {
-            if (unsubUsers) { unsubUsers(); unsubUsers = null; }
+            stopListening();
 
             if (!user) {
+                closeDetail();
                 $('view-admin').hidden = true;
                 $('view-login').hidden = false;
                 $('admin-pass').value = '';
@@ -195,62 +282,131 @@
             $('admin-who').textContent = user.email;
             $('data-error').textContent = '';
 
-            unsubUsers = onSnapshot(
+            unsubs.push(onSnapshot(
                 query(collection(db, 'users'), orderBy('lastSeen', 'desc')),
-                (snap) => {
-                    users = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-                    render();
-                },
+                (snap) => { users = snap.docs.map((d) => ({ id: d.id, ...d.data() })); renderAll(); },
                 (err) => {
                     $('data-error').textContent = err.code === 'permission-denied'
                         ? 'Không có quyền đọc dữ liệu. Kiểm tra firestore.rules đã được Publish và email quản lý trong rules trùng với email đăng nhập.'
                         : 'Không tải được dữ liệu (' + (err.code || 'lỗi không rõ') + ').';
                 }
-            );
+            ));
+
+            // Điểm và câu sai nằm ở 2 bảng riêng; cần firestore.rules bản mới mới đọc được
+            const extraError = (err) => {
+                $('data-error').textContent = err.code === 'permission-denied'
+                    ? 'Chưa đọc được điểm và câu sai: hãy dán firestore.rules bản mới vào Firebase Console → Firestore Database → Rules → Publish.'
+                    : 'Không tải được điểm / câu sai (' + (err.code || 'lỗi không rõ') + ').';
+            };
+            unsubs.push(onSnapshot(collection(db, 'scores'), (snap) => {
+                scores = {}; snap.docs.forEach((d) => { scores[d.id] = d.data(); }); renderAll();
+            }, extraError));
+            unsubs.push(onSnapshot(collection(db, 'progress'), (snap) => {
+                progress = {}; snap.docs.forEach((d) => { progress[d.id] = d.data(); }); renderAll();
+            }, extraError));
         });
 
-        // ---------- Hiển thị ----------
-        function render() {
-            const now = Date.now();
-            const term = $('search').value.trim().toLowerCase();
+        // ---------- Tiện ích ----------
+        const DAY = 24 * 3600 * 1000;
+        const ms = (t) => { const d = toDate(t); return d ? d.getTime() : 0; };
+        const fmtScore = (n) => typeof n === 'number' ? n.toLocaleString('vi-VN', { maximumFractionDigits: 2 }) : '—';
+        const bestOf = (id) => (scores[id] && typeof scores[id].best === 'number') ? scores[id].best : null;
+        const attemptsOf = (id) => (scores[id] && scores[id].attempts) || 0;
+        const wrongOf = (id) => (progress[id] && Array.isArray(progress[id].wrong)) ? progress[id].wrong : [];
+        const historyOf = (id) => (progress[id] && Array.isArray(progress[id].history)) ? progress[id].history : [];
+        const TOPIC_NAMES = { all: 'Cả 2 bài', b6: 'Bài 6', b8: 'Bài 8', wrong: 'Ôn câu sai' };
 
+        // "b6_mcq_3" -> "Bài 6 · Phần I (ABCD) · Câu 3"
+        function questionLabel(uid) {
+            const m = /^b(\d+)_(mcq|tf|sa)_(\d+)$/.exec(uid || '');
+            if (!m) return uid || '?';
+            const part = { mcq: 'Phần I (ABCD)', tf: 'Phần II (Đúng/Sai)', sa: 'Phần III (Trả lời ngắn)' }[m[2]];
+            return 'Bài ' + m[1] + ' · ' + part + ' · Câu ' + m[3];
+        }
+
+        function avatarHtml(u, size) {
+            const cls = (size || 'w-10 h-10') + ' rounded-full shrink-0';
+            const initial = esc((u.name || u.email || '?').trim().charAt(0).toUpperCase());
+            return u.photoURL
+                ? `<img src="${esc(u.photoURL)}" alt="" referrerpolicy="no-referrer" class="${cls} object-cover">`
+                : `<div class="${cls} bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center">${initial}</div>`;
+        }
+
+        // ---------- Hiển thị ----------
+        function renderAll() {
+            renderStats();
+            renderUsers();
+            renderRank();
+            renderMissed();
+            if (detailId) renderDetail();
+        }
+
+        function renderStats() {
+            const now = Date.now();
             $('stat-total').textContent = users.length;
             $('stat-blocked').textContent = users.filter((u) => u.blocked).length;
-            $('stat-active').textContent = users.filter((u) => {
-                const d = toDate(u.lastSeen); return d && now - d.getTime() < 24 * 3600 * 1000;
-            }).length;
+            $('stat-active').textContent = users.filter((u) => now - ms(u.lastSeen) < DAY).length;
+            $('stat-new').textContent = users.filter((u) => now - ms(u.firstSeen) < 7 * DAY).length;
+            const bests = Object.values(scores).map((s) => s.best).filter((b) => typeof b === 'number');
+            $('stat-attempts').textContent = Object.values(scores).reduce((a, s) => a + (s.attempts || 0), 0);
+            $('stat-avg').textContent = bests.length ? fmtScore(bests.reduce((a, b) => a + b, 0) / bests.length) : '—';
+        }
 
+        function visibleUsers() {
+            const now = Date.now();
+            const term = $('search').value.trim().toLowerCase();
             const list = users.filter((u) => {
                 if (filter === 'blocked' && !u.blocked) return false;
+                if (filter === 'active' && now - ms(u.lastSeen) >= DAY) return false;
+                if (filter === 'noscore' && bestOf(u.id) != null) return false;
                 if (!term) return true;
                 return ((u.name || '') + ' ' + (u.email || '')).toLowerCase().includes(term);
             });
+            const by = $('sort').value;
+            const num = {
+                lastSeen: (u) => ms(u.lastSeen),
+                firstSeen: (u) => ms(u.firstSeen),
+                best: (u) => bestOf(u.id) == null ? -1 : bestOf(u.id),
+                attempts: (u) => attemptsOf(u.id),
+                visits: (u) => u.visits || 0,
+                wrong: (u) => wrongOf(u.id).length
+            }[by];
+            if (num) list.sort((a, b) => num(b) - num(a));
+            else list.sort((a, b) => (a.name || a.email || '').localeCompare(b.name || b.email || '', 'vi'));
+            return list;
+        }
+
+        function renderUsers() {
+            const list = visibleUsers();
+            $('list-count').textContent = 'Đang hiện ' + list.length + ' / ' + users.length + ' người dùng';
 
             $('rows').innerHTML = list.map((u) => {
-                const initial = esc((u.name || u.email || '?').trim().charAt(0).toUpperCase());
-                const avatar = u.photoURL
-                    ? `<img src="${esc(u.photoURL)}" alt="" referrerpolicy="no-referrer" class="w-10 h-10 rounded-full object-cover shrink-0">`
-                    : `<div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0">${initial}</div>`;
                 const status = u.blocked
                     ? '<span class="inline-block text-xs font-bold px-2.5 py-1 rounded-full bg-rose-100 text-rose-700">Đã chặn</span>'
                     : '<span class="inline-block text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">Cho phép</span>';
                 const action = u.blocked
-                    ? `<button type="button" data-act="unblock" data-id="${esc(u.id)}" class="btn btn-unblock w-full md:w-auto">Bỏ chặn</button>`
-                    : `<button type="button" data-act="block" data-id="${esc(u.id)}" class="btn btn-block w-full md:w-auto">Chặn</button>`;
+                    ? `<button type="button" data-act="unblock" data-id="${esc(u.id)}" class="btn btn-unblock flex-1 lg:flex-none">Bỏ chặn</button>`
+                    : `<button type="button" data-act="block" data-id="${esc(u.id)}" class="btn btn-block flex-1 lg:flex-none">Chặn</button>`;
+                const best = bestOf(u.id);
                 return `
                     <div class="user-row">
-                        <div class="flex items-center gap-3 min-w-0">
-                            ${avatar}
+                        <div class="span-all flex items-center gap-3 min-w-0">
+                            ${avatarHtml(u)}
                             <div class="min-w-0">
                                 <div class="font-bold truncate">${esc(u.name || '(chưa có tên)')}</div>
                                 <div class="text-sm text-slate-500 truncate">${esc(u.email)}</div>
                             </div>
                         </div>
-                        <div><span class="cell-label">Số lần vào: </span><b>${esc(u.visits || 0)}</b></div>
-                        <div class="text-sm"><span class="cell-label">Lần đầu: </span>${fmt(toDate(u.firstSeen))}</div>
+                        <div><span class="cell-label">Lần vào: </span><b>${esc(u.visits || 0)}</b></div>
+                        <div><span class="cell-label">Điểm cao nhất: </span><b class="text-emerald-700">${best == null ? '—' : fmtScore(best)}</b></div>
+                        <div><span class="cell-label">Lượt làm: </span><b>${attemptsOf(u.id)}</b></div>
+                        <div><span class="cell-label">Câu sai: </span><b class="${wrongOf(u.id).length ? 'text-rose-700' : ''}">${wrongOf(u.id).length}</b></div>
                         <div class="text-sm"><span class="cell-label">Gần nhất: </span>${fmt(toDate(u.lastSeen))}</div>
                         <div>${status}</div>
-                        <div>${action}</div>
+                        <div class="span-all flex gap-2">
+                            <button type="button" data-act="detail" data-id="${esc(u.id)}" class="btn btn-soft flex-1 lg:flex-none">Chi tiết</button>
+                            ${action}
+                        </div>
                     </div>`;
             }).join('');
 
@@ -261,7 +417,65 @@
                 : 'Không có người dùng nào khớp.';
         }
 
-        $('search').addEventListener('input', render);
+        function renderRank() {
+            const byId = {}; users.forEach((u) => { byId[u.id] = u; });
+            const list = Object.keys(scores)
+                .filter((id) => typeof scores[id].best === 'number')
+                .sort((a, b) => scores[b].best - scores[a].best || ms(scores[a].bestAt) - ms(scores[b].bestAt));
+            const medals = ['🥇', '🥈', '🥉'];
+            $('rank-rows').innerHTML = list.map((id, i) => {
+                const s = scores[id];
+                const u = byId[id] || { name: s.name, photoURL: s.photoURL, email: '' };
+                return `
+                    <div class="line-row">
+                        <div class="w-8 text-center font-extrabold text-slate-500 shrink-0">${medals[i] || (i + 1)}</div>
+                        ${avatarHtml(u)}
+                        <div class="min-w-0 flex-1">
+                            <div class="font-bold truncate">${esc(u.name || s.name || '(chưa có tên)')}${u.blocked ? ' <span class="text-xs font-bold text-rose-700">(đã chặn)</span>' : ''}</div>
+                            <div class="text-sm text-slate-500 truncate">${esc(u.email || '')}</div>
+                            <div class="text-xs text-slate-500">${s.attempts || 0} lượt · đạt lúc ${fmt(toDate(s.bestAt))}</div>
+                        </div>
+                        <div class="font-extrabold text-emerald-700 text-lg shrink-0">${fmtScore(s.best)}</div>
+                        <button type="button" data-act="del-score" data-id="${esc(id)}" class="btn btn-block shrink-0">Xoá điểm</button>
+                    </div>`;
+            }).join('');
+            $('rank-empty').hidden = list.length > 0;
+        }
+
+        function renderMissed() {
+            const count = {};
+            Object.values(progress).forEach((p) => {
+                (Array.isArray(p.wrong) ? p.wrong : []).forEach((q) => { count[q] = (count[q] || 0) + 1; });
+            });
+            const list = Object.keys(count).sort((a, b) => count[b] - count[a] || a.localeCompare(b)).slice(0, 30);
+            const max = list.length ? count[list[0]] : 1;
+            $('missed-rows').innerHTML = list.map((q, i) => `
+                <div class="line-row">
+                    <div class="w-8 text-center font-extrabold text-slate-500 shrink-0">${i + 1}</div>
+                    <div class="min-w-0 flex-1">
+                        <div class="font-bold">${esc(questionLabel(q))}</div>
+                        <div class="bar mt-1.5"><i style="width:${Math.round(count[q] / max * 100)}%"></i></div>
+                    </div>
+                    <div class="shrink-0 text-right"><b class="text-rose-700 text-lg">${count[q]}</b> <span class="text-xs text-slate-500">người</span></div>
+                </div>`).join('');
+            $('missed-empty').hidden = list.length > 0;
+        }
+
+        // ---------- Tab, lọc, sắp xếp ----------
+        document.querySelectorAll('[data-tab]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                tab = btn.dataset.tab;
+                document.querySelectorAll('[data-tab]').forEach((b) => {
+                    const on = b.dataset.tab === tab;
+                    b.className = 'btn shrink-0 ' + (on ? 'btn-primary' : 'btn-soft');
+                    b.setAttribute('aria-selected', String(on));
+                    $('tab-' + b.dataset.tab).hidden = !on;
+                });
+            });
+        });
+
+        $('search').addEventListener('input', renderUsers);
+        $('sort').addEventListener('change', renderUsers);
 
         document.querySelectorAll('[data-filter]').forEach((btn) => {
             btn.addEventListener('click', () => {
@@ -269,27 +483,150 @@
                 document.querySelectorAll('[data-filter]').forEach((b) => {
                     b.className = 'btn ' + (b.dataset.filter === filter ? 'btn-primary' : 'btn-soft');
                 });
-                render();
+                renderUsers();
             });
         });
 
-        // ---------- Chặn / bỏ chặn ----------
-        $('rows').addEventListener('click', async (e) => {
+        // ---------- Xuất CSV (mở được bằng Excel) ----------
+        $('export-btn').addEventListener('click', () => {
+            const cell = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+            const head = ['Tên', 'Email', 'Trạng thái', 'Số lần vào', 'Điểm cao nhất', 'Điểm gần nhất', 'Lượt làm xong', 'Số câu sai', 'Lần đầu', 'Gần nhất'];
+            const lines = visibleUsers().map((u) => {
+                const s = scores[u.id] || {};
+                return [u.name, u.email, u.blocked ? 'Đã chặn' : 'Cho phép', u.visits || 0,
+                    typeof s.best === 'number' ? fmtScore(s.best) : '', typeof s.lastScore === 'number' ? fmtScore(s.lastScore) : '',
+                    s.attempts || 0, wrongOf(u.id).length, fmt(toDate(u.firstSeen)), fmt(toDate(u.lastSeen))].map(cell).join(',');
+            });
+            const blob = new Blob(['\uFEFF' + [head.map(cell).join(','), ...lines].join('\r\n')], { type: 'text/csv;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'biomaster-nguoi-dung-' + new Date().toISOString().slice(0, 10) + '.csv';
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        });
+
+        // ---------- Chi tiết người dùng ----------
+        let detailOpener = null;
+
+        function openDetail(id) {
+            detailOpener = document.activeElement;
+            detailId = id;
+            renderDetail();
+            $('detail').hidden = false;
+            $('detail-close').focus();
+        }
+        function closeDetail() {
+            if ($('detail').hidden) return;
+            $('detail').hidden = true;
+            detailId = null;
+            if (detailOpener && document.contains(detailOpener)) detailOpener.focus();
+        }
+        $('detail-close').addEventListener('click', closeDetail);
+        $('detail').addEventListener('click', (e) => { if (e.target === $('detail')) closeDetail(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDetail(); });
+
+        function renderDetail() {
+            const u = users.find((x) => x.id === detailId);
+            if (!u) { closeDetail(); return; }
+            const s = scores[u.id] || {};
+            const wrong = wrongOf(u.id).slice().sort();
+            const history = historyOf(u.id);
+
+            $('detail-avatar').innerHTML = avatarHtml(u, 'w-12 h-12');
+            $('detail-name').textContent = u.name || '(chưa có tên)';
+            $('detail-email').textContent = u.email || '';
+
+            const stat = (label, value, cls) => `<div class="rounded-xl bg-[#f3f8f4] p-3"><div class="text-xs text-slate-500">${label}</div><div class="mt-0.5 font-extrabold ${cls || ''}">${value}</div></div>`;
+            const historyHtml = history.length
+                ? history.map((h) => `
+                    <div class="flex items-center justify-between gap-3 py-2 border-t border-[#eef5f0]">
+                        <div class="min-w-0">
+                            <div class="text-sm font-semibold">${esc(TOPIC_NAMES[h.t] || 'Kiểm tra')} <span class="text-slate-500 font-normal">· ${esc(h.n || '?')} câu</span></div>
+                            <div class="text-xs text-slate-500">${fmt(h.at ? new Date(h.at) : null)}</div>
+                        </div>
+                        <b class="text-emerald-700 shrink-0">${fmtScore(h.s)}/10</b>
+                    </div>`).join('')
+                : '<p class="text-sm text-slate-500">Chưa hoàn thành lượt nào.</p>';
+            const wrongHtml = wrong.length
+                ? '<ul class="grid sm:grid-cols-2 gap-x-4 gap-y-1 text-sm">' + wrong.map((q) => `<li>${esc(questionLabel(q))}</li>`).join('') + '</ul>'
+                : '<p class="text-sm text-slate-500">Không có câu sai nào đang lưu.</p>';
+
+            $('detail-body').innerHTML = `
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    ${stat('Điểm cao nhất', typeof s.best === 'number' ? fmtScore(s.best) + '/10' : '—', 'text-emerald-700')}
+                    ${stat('Điểm gần nhất', typeof s.lastScore === 'number' ? fmtScore(s.lastScore) + '/10' : '—')}
+                    ${stat('Lượt làm xong', s.attempts || 0)}
+                    ${stat('Câu sai', wrong.length, wrong.length ? 'text-rose-700' : '')}
+                    ${stat('Số lần vào', esc(u.visits || 0))}
+                    ${stat('Trạng thái', u.blocked ? 'Đã chặn' : 'Cho phép', u.blocked ? 'text-rose-700' : '')}
+                    ${stat('Lần đầu', '<span class="text-sm font-semibold">' + fmt(toDate(u.firstSeen)) + '</span>')}
+                    ${stat('Gần nhất', '<span class="text-sm font-semibold">' + fmt(toDate(u.lastSeen)) + '</span>')}
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-sm mb-1">Lịch sử làm bài (${history.length} lượt gần nhất)</h3>
+                    ${historyHtml}
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-sm mb-2">Câu đang sai (${wrong.length})</h3>
+                    ${wrongHtml}
+                </div>
+                <div class="border-t border-[#e6f1ea] pt-4">
+                    <h3 class="font-extrabold text-sm mb-2">Thao tác</h3>
+                    <div class="flex flex-wrap gap-2">
+                        ${u.blocked
+                            ? `<button type="button" data-act="unblock" data-id="${esc(u.id)}" class="btn btn-unblock">Bỏ chặn</button>`
+                            : `<button type="button" data-act="block" data-id="${esc(u.id)}" class="btn btn-block">Chặn</button>`}
+                        <button type="button" data-act="del-score" data-id="${esc(u.id)}" class="btn btn-block" ${scores[u.id] ? '' : 'disabled style="opacity:.5"'}>Xoá điểm xếp hạng</button>
+                        <button type="button" data-act="del-wrong" data-id="${esc(u.id)}" class="btn btn-block" ${progress[u.id] ? '' : 'disabled style="opacity:.5"'}>Xoá câu sai & lịch sử</button>
+                        <button type="button" data-act="del-user" data-id="${esc(u.id)}" class="btn btn-danger">Xoá người dùng</button>
+                    </div>
+                    <p class="mt-2 text-xs text-slate-500">"Xoá người dùng" xoá hồ sơ, điểm và câu sai. Nếu họ đăng nhập lại, một hồ sơ mới (chưa bị chặn) sẽ được tạo; muốn cấm hẳn thì dùng "Chặn".</p>
+                </div>`;
+        }
+
+        // ---------- Thao tác: chặn, xoá điểm, xoá người dùng ----------
+        async function handleAction(e) {
             const btn = e.target.closest('button[data-act]');
-            if (!btn) return;
-            const u = users.find((x) => x.id === btn.dataset.id);
-            if (!u) return;
-            const block = btn.dataset.act === 'block';
-            const who = u.name || u.email || 'người dùng này';
-            if (!confirm((block ? 'Chặn ' : 'Bỏ chặn ') + who + '?')) return;
+            if (!btn || btn.disabled) return;
+            const id = btn.dataset.id, act = btn.dataset.act;
+            if (act === 'detail') { openDetail(id); return; }
+
+            const u = users.find((x) => x.id === id) || {};
+            const who = u.name || u.email || (scores[id] && scores[id].name) || 'người dùng này';
+            const ask = {
+                block: 'Chặn ' + who + '?',
+                unblock: 'Bỏ chặn ' + who + '?',
+                'del-score': 'Xoá điểm xếp hạng của ' + who + '? Không khôi phục được.',
+                'del-wrong': 'Xoá danh sách câu sai và lịch sử làm bài của ' + who + '? Không khôi phục được.',
+                'del-user': 'Xoá hồ sơ, điểm và câu sai của ' + who + '? Không khôi phục được.'
+            }[act];
+            if (!ask || !confirm(ask)) return;
+
             btn.disabled = true;
             try {
-                await updateDoc(doc(db, 'users', u.id), { blocked: block });
+                if (act === 'block' || act === 'unblock') {
+                    await updateDoc(doc(db, 'users', id), { blocked: act === 'block' });
+                } else if (act === 'del-score') {
+                    await deleteDoc(doc(db, 'scores', id));
+                } else if (act === 'del-wrong') {
+                    await deleteDoc(doc(db, 'progress', id));
+                } else if (act === 'del-user') {
+                    await Promise.all([deleteDoc(doc(db, 'scores', id)), deleteDoc(doc(db, 'progress', id))]);
+                    await deleteDoc(doc(db, 'users', id));
+                    closeDetail();
+                }
+                $('data-error').textContent = '';
             } catch (err) {
-                $('data-error').textContent = 'Không cập nhật được (' + (err.code || 'lỗi không rõ') + ').';
+                $('data-error').textContent = err.code === 'permission-denied'
+                    ? 'Không có quyền thực hiện. Kiểm tra firestore.rules bản mới đã được Publish.'
+                    : 'Không cập nhật được (' + (err.code || 'lỗi không rõ') + ').';
+                if (act !== 'block' && act !== 'unblock') alert($('data-error').textContent);
                 btn.disabled = false;
             }
-        });
+        }
+        $('rows').addEventListener('click', handleAction);
+        $('rank-rows').addEventListener('click', handleAction);
+        $('detail-body').addEventListener('click', handleAction);
     </script>
 </body>
 </html>
