@@ -8,7 +8,7 @@ service cloud.firestore {
     // Quản lý = đăng nhập bằng EMAIL + MẬT KHẨU với đúng email này (không phải đăng nhập Google).
     function isAdmin() {
       return request.auth != null
-        && request.auth.token.email == 'admin@biomaster.app'
+        && request.auth.token.email == 'longbao123789@gmail.com'
         && request.auth.token.firebase.sign_in_provider == 'password';
     }
 

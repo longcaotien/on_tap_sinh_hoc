@@ -20,6 +20,8 @@ Vào **Authentication → Users → Add user**:
 
 Quên mật khẩu thì vào lại trang này, bấm dấu ba chấm cạnh tài khoản → **Reset password** hoặc xoá rồi tạo lại.
 
+Nếu email quản lý là Gmail thật và bạn từng đăng nhập Google bằng chính email đó ở trang làm bài, Firebase sẽ tự gỡ mật khẩu của tài khoản (báo "Sai email hoặc mật khẩu" dù nhập đúng). Khi đó mở `admin.html`, bấm **Quên mật khẩu / đặt lại mật khẩu**, làm theo thư gửi về để đặt lại. Sau lần đặt lại này mật khẩu sẽ không bị gỡ nữa.
+
 ## 4. Tạo cơ sở dữ liệu và quy tắc bảo vệ
 1. **Build → Firestore Database → Create database**, chọn **Production mode**, chọn vị trí gần Việt Nam (ví dụ `asia-southeast1`).
 2. Mở tab **Rules**, xoá nội dung cũ, dán toàn bộ nội dung file `firestore.rules`.
