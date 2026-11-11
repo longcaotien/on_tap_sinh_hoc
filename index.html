@@ -186,6 +186,19 @@
         }
         #mini-score:not(.hidden) { display: inline-flex; align-items: center; white-space: nowrap; }
 
+        /* ---------- Cổng đăng nhập Google ---------- */
+        #auth-gate { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center;
+                     padding: 1.25rem; background: #f3f8f4; overflow-y: auto; }
+        body:not([data-auth="ok"]) #auth-gate { display: flex; }
+        body:not([data-auth="ok"]) > *:not(#auth-gate):not(script):not(style):not(link):not(noscript) { display: none !important; }
+        #user-chip { position: fixed; left: .75rem; bottom: calc(.75rem + env(safe-area-inset-bottom, 0px)); z-index: 45;
+                     display: none; align-items: center; gap: .5rem; max-width: min(70vw, 20rem); padding: .35rem .4rem .35rem .8rem;
+                     background: #fff; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; font-weight: 600; color: #0d2b22;
+                     box-shadow: 0 8px 20px -10px rgba(0,0,0,.35); }
+        #user-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #user-chip button { flex: none; padding: .3rem .65rem; border-radius: 999px; background: #ecf5ef; color: #0b7a58; font-weight: 700; }
+        #user-chip button:hover { background: #d9ebdf; }
+
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation: none !important; transition: none !important; }
             html { scroll-behavior: auto !important; }
@@ -193,6 +206,70 @@
     </style>
 </head>
 <body class="text-slate-800 antialiased selection:bg-bio-500 selection:text-white min-h-screen flex flex-col">
+
+    <!-- ==================== CỔNG ĐĂNG NHẬP GOOGLE ==================== -->
+    <script src="firebase-config.js"></script>
+    <div id="auth-gate" role="dialog" aria-modal="true" aria-label="Đăng nhập">
+        <div class="w-full max-w-sm bg-white rounded-2xl border border-[#d5e5da] shadow-xl p-7 text-center">
+            <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-bio-500 via-emerald-600 to-teal-700 flex items-center justify-center text-white shadow-md">
+                <i class="fa-solid fa-dna text-2xl"></i>
+            </div>
+            <h1 class="mt-4 font-extrabold text-xl text-slate-800">BioMaster 11</h1>
+
+            <div id="gate-loading" class="mt-5 text-sm text-slate-600">
+                <i class="fa-solid fa-circle-notch fa-spin mr-2 text-bio-700"></i>Đang kiểm tra tài khoản...
+            </div>
+
+            <div id="gate-login" hidden class="mt-2">
+                <p class="text-sm text-slate-600 leading-relaxed">Đăng nhập bằng Google để vào ôn tập.</p>
+                <button id="gate-login-btn" type="button" class="mt-5 w-full h-12 rounded-xl bg-bio-700 hover:bg-bio-900 disabled:opacity-60 text-white font-bold text-sm flex items-center justify-center gap-2.5 transition-colors">
+                    <i class="fa-brands fa-google"></i> Đăng nhập bằng Google
+                </button>
+                <p id="gate-inapp" hidden class="mt-3 text-xs text-left leading-relaxed text-amber-900 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                    Bạn đang mở trang trong một ứng dụng (Zalo, Facebook...). Google không cho đăng nhập ở đây. Hãy bấm nút menu <b>⋮</b> hoặc <b>...</b> rồi chọn <b>Mở bằng trình duyệt</b> (Chrome/Safari).
+                </p>
+                <p class="mt-4 text-[11px] text-slate-500 leading-relaxed">Người quản lý có thể xem tên, email và số lần bạn vào trang này.</p>
+            </div>
+
+            <div id="gate-blocked" hidden class="mt-3">
+                <div class="w-11 h-11 mx-auto rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-lg"><i class="fa-solid fa-ban"></i></div>
+                <p class="mt-3 font-bold text-slate-800">Tài khoản đã bị chặn</p>
+                <p class="mt-1 text-sm text-slate-600 break-all"><span id="gate-blocked-email"></span></p>
+                <p class="mt-2 text-xs text-slate-500 leading-relaxed">Nếu bạn nghĩ đây là nhầm lẫn, hãy liên hệ người quản lý.</p>
+                <button id="gate-blocked-out" type="button" class="mt-5 w-full h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition-colors">Đăng xuất</button>
+            </div>
+
+            <div id="gate-error" hidden class="mt-3">
+                <div class="w-11 h-11 mx-auto rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-lg"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <p id="gate-error-text" class="mt-3 text-sm text-slate-700 leading-relaxed"></p>
+                <button type="button" onclick="location.reload()" class="mt-5 w-full h-11 rounded-xl bg-bio-700 hover:bg-bio-900 text-white font-bold text-sm transition-colors">Tải lại trang</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="user-chip">
+        <span id="user-chip-name"></span>
+        <button id="user-chip-out" type="button">Đăng xuất</button>
+    </div>
+
+    <script>
+    (function () {
+        var b = document.body, c = window.BIO_FIREBASE;
+        // Chưa cấu hình Firebase: bỏ qua cổng đăng nhập, trang chạy như cũ
+        if (!c || !c.apiKey || /^DIEN_/.test(c.apiKey)) { b.dataset.auth = 'ok'; return; }
+        b.dataset.auth = 'pending';
+        var m = document.createElement('script');
+        m.type = 'module'; m.src = 'auth-gate.js';
+        document.head.appendChild(m);
+        // Không tải được dịch vụ đăng nhập (mạng chặn, ...): báo lỗi thay vì treo màn hình chờ
+        setTimeout(function () {
+            if (b.dataset.auth !== 'pending') return;
+            ['loading', 'login', 'blocked'].forEach(function (p) { document.getElementById('gate-' + p).hidden = true; });
+            document.getElementById('gate-error-text').textContent = 'Không tải được dịch vụ đăng nhập. Kiểm tra kết nối mạng rồi tải lại trang.';
+            document.getElementById('gate-error').hidden = false;
+        }, 15000);
+    })();
+    </script>
 
     <!-- ==================== THANH ĐIỀU HƯỚNG (NAVBAR) ==================== -->
     <header class="sticky top-0 z-50 glass-nav shadow-sm">

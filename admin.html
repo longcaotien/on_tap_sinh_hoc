@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Quản lý · BioMaster 11</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { font-family: 'Be Vietnam Pro', system-ui, sans-serif; background: #f3f8f4; color: #0d2b22; font-variant-numeric: tabular-nums; }
+        [hidden] { display: none !important; }
+        :focus-visible { outline: 3px solid #f2b640; outline-offset: 2px; }
+        .card { background: #fff; border: 1px solid #d5e5da; border-radius: 1rem; box-shadow: 0 1px 0 rgba(6,78,59,.04), 0 12px 28px -20px rgba(6,78,59,.4); }
+        .btn { height: 2.5rem; padding: 0 1rem; border-radius: .75rem; font-weight: 700; font-size: .875rem; transition: background-color .15s; }
+        .btn-primary { background: #0b7a58; color: #fff; }
+        .btn-primary:hover { background: #065f46; }
+        .btn-primary:disabled { opacity: .6; cursor: default; }
+        .btn-soft { background: #ecf5ef; color: #0b7a58; }
+        .btn-soft:hover { background: #d9ebdf; }
+        .btn-block { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
+        .btn-block:hover { background: #ffe4e6; }
+        .btn-unblock { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+        .btn-unblock:hover { background: #d1fae5; }
+        input[type="email"], input[type="password"], input[type="search"] {
+            width: 100%; height: 2.75rem; padding: 0 .9rem; border: 1px solid #cfe0d4; border-radius: .75rem; background: #fff; font-size: .95rem;
+        }
+        .user-row { display: grid; grid-template-columns: 1fr; gap: .6rem; padding: .9rem 1rem; border-top: 1px solid #e6f1ea; align-items: center; }
+        @media (min-width: 768px) {
+            .user-row { grid-template-columns: minmax(0, 2.2fr) 5rem 9.5rem 9.5rem 6.5rem 7.5rem; gap: 1rem; }
+            .user-head { display: grid; }
+        }
+        .user-head { display: none; grid-template-columns: minmax(0, 2.2fr) 5rem 9.5rem 9.5rem 6.5rem 7.5rem; gap: 1rem; padding: .7rem 1rem;
+                     font-size: .75rem; font-weight: 700; color: #5b7066; }
+        .cell-label { color: #5b7066; font-size: .75rem; }
+        @media (min-width: 768px) { .cell-label { display: none; } }
+    </style>
+</head>
+<body class="min-h-screen">
+    <script src="firebase-config.js"></script>
+
+    <!-- Màn hình đăng nhập quản lý -->
+    <main id="view-login" class="min-h-screen flex items-center justify-center p-5">
+        <form id="login-form" class="card w-full max-w-sm p-7" autocomplete="on">
+            <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 flex items-center justify-center text-white shadow-md">
+                <i class="fa-solid fa-lock text-xl"></i>
+            </div>
+            <h1 class="mt-4 text-center font-extrabold text-xl">Trang quản lý</h1>
+            <p class="mt-1 text-center text-sm text-slate-600">Nhập email và mật khẩu quản lý để tiếp tục.</p>
+
+            <label class="block mt-6 text-sm font-semibold" for="admin-email">Email</label>
+            <input id="admin-email" type="email" required autocomplete="username" class="mt-1.5">
+
+            <label class="block mt-4 text-sm font-semibold" for="admin-pass">Mật khẩu</label>
+            <input id="admin-pass" type="password" required autocomplete="current-password" class="mt-1.5">
+
+            <p id="login-error" role="alert" class="mt-3 text-sm text-rose-700 min-h-[1.25rem]"></p>
+
+            <button id="login-btn" type="submit" class="btn btn-primary w-full mt-2">Đăng nhập</button>
+        </form>
+    </main>
+
+    <!-- Bảng quản lý -->
+    <div id="view-admin" hidden>
+        <header class="bg-white border-b border-[#d5e5da]">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 flex items-center justify-center text-white">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="font-extrabold leading-tight">Quản lý người dùng</div>
+                        <div id="admin-who" class="text-xs text-slate-500 truncate"></div>
+                    </div>
+                </div>
+                <button id="logout-btn" type="button" class="btn btn-soft shrink-0"><i class="fa-solid fa-right-from-bracket mr-1.5"></i>Đăng xuất</button>
+            </div>
+        </header>
+
+        <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+            <section class="grid grid-cols-3 gap-3" aria-label="Thống kê">
+                <div class="card p-4"><div class="text-xs text-slate-500">Tổng người dùng</div><div id="stat-total" class="mt-1 text-2xl font-extrabold">0</div></div>
+                <div class="card p-4"><div class="text-xs text-slate-500">Vào trong 24 giờ</div><div id="stat-active" class="mt-1 text-2xl font-extrabold">0</div></div>
+                <div class="card p-4"><div class="text-xs text-slate-500">Đang bị chặn</div><div id="stat-blocked" class="mt-1 text-2xl font-extrabold text-rose-700">0</div></div>
+            </section>
+
+            <section class="card overflow-hidden">
+                <div class="p-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+                    <input id="search" type="search" placeholder="Tìm theo tên hoặc email" class="sm:max-w-xs" aria-label="Tìm người dùng">
+                    <div class="flex gap-2" role="group" aria-label="Lọc">
+                        <button type="button" data-filter="all" class="btn btn-primary">Tất cả</button>
+                        <button type="button" data-filter="blocked" class="btn btn-soft">Đang bị chặn</button>
+                    </div>
+                </div>
+
+                <div class="user-head">
+                    <div>Người dùng</div><div>Số lần vào</div><div>Lần đầu</div><div>Gần nhất</div><div>Trạng thái</div><div></div>
+                </div>
+                <div id="rows"></div>
+                <p id="empty" hidden class="p-8 text-center text-sm text-slate-500"></p>
+            </section>
+            <p id="data-error" role="alert" class="text-sm text-rose-700"></p>
+        </main>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
+            from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+        import { getFirestore, collection, query, orderBy, onSnapshot, doc, updateDoc }
+            from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+        const cfg = window.BIO_FIREBASE;
+        const ADMIN_EMAIL = (window.BIO_ADMIN_EMAIL || '').toLowerCase();
+        const $ = (id) => document.getElementById(id);
+
+        if (!cfg || !cfg.apiKey || /^DIEN_/.test(cfg.apiKey)) {
+            $('login-error').textContent = 'Chưa cấu hình Firebase. Hãy điền firebase-config.js trước (xem FIREBASE_SETUP.md).';
+            $('login-btn').disabled = true;
+            throw new Error('Firebase chưa được cấu hình');
+        }
+
+        const app = initializeApp(cfg);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let users = [];
+        let filter = 'all';
+        let unsubUsers = null;
+
+        const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const toDate = (t) => (t && typeof t.toDate === 'function') ? t.toDate() : null;
+        const fmt = (d) => d ? d.toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+
+        // ---------- Đăng nhập ----------
+        $('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = $('login-btn');
+            $('login-error').textContent = '';
+            btn.disabled = true; btn.textContent = 'Đang đăng nhập...';
+            try {
+                await signInWithEmailAndPassword(auth, $('admin-email').value.trim(), $('admin-pass').value);
+            } catch (err) {
+                const wrong = ['auth/invalid-credential', 'auth/wrong-password', 'auth/user-not-found', 'auth/invalid-email'];
+                $('login-error').textContent = wrong.includes(err.code) ? 'Sai email hoặc mật khẩu.'
+                    : err.code === 'auth/too-many-requests' ? 'Nhập sai quá nhiều lần. Hãy thử lại sau ít phút.'
+                    : err.code === 'auth/network-request-failed' ? 'Mất kết nối mạng.'
+                    : 'Không đăng nhập được (' + (err.code || 'lỗi không rõ') + ').';
+            }
+            btn.disabled = false; btn.textContent = 'Đăng nhập';
+        });
+
+        $('logout-btn').addEventListener('click', () => signOut(auth));
+
+        onAuthStateChanged(auth, (user) => {
+            if (unsubUsers) { unsubUsers(); unsubUsers = null; }
+
+            if (!user) {
+                $('view-admin').hidden = true;
+                $('view-login').hidden = false;
+                $('admin-pass').value = '';
+                return;
+            }
+            // Kiểm tra nhanh ở trình duyệt; quyền thật sự do firestore.rules quyết định
+            if ((user.email || '').toLowerCase() !== ADMIN_EMAIL) {
+                signOut(auth);
+                $('login-error').textContent = 'Tài khoản này không phải quản lý.';
+                return;
+            }
+            $('view-login').hidden = true;
+            $('view-admin').hidden = false;
+            $('admin-who').textContent = user.email;
+            $('data-error').textContent = '';
+
+            unsubUsers = onSnapshot(
+                query(collection(db, 'users'), orderBy('lastSeen', 'desc')),
+                (snap) => {
+                    users = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+                    render();
+                },
+                (err) => {
+                    $('data-error').textContent = err.code === 'permission-denied'
+                        ? 'Không có quyền đọc dữ liệu. Kiểm tra firestore.rules đã được Publish và email quản lý trong rules trùng với email đăng nhập.'
+                        : 'Không tải được dữ liệu (' + (err.code || 'lỗi không rõ') + ').';
+                }
+            );
+        });
+
+        // ---------- Hiển thị ----------
+        function render() {
+            const now = Date.now();
+            const term = $('search').value.trim().toLowerCase();
+
+            $('stat-total').textContent = users.length;
+            $('stat-blocked').textContent = users.filter((u) => u.blocked).length;
+            $('stat-active').textContent = users.filter((u) => {
+                const d = toDate(u.lastSeen); return d && now - d.getTime() < 24 * 3600 * 1000;
+            }).length;
+
+            const list = users.filter((u) => {
+                if (filter === 'blocked' && !u.blocked) return false;
+                if (!term) return true;
+                return ((u.name || '') + ' ' + (u.email || '')).toLowerCase().includes(term);
+            });
+
+            $('rows').innerHTML = list.map((u) => {
+                const initial = esc((u.name || u.email || '?').trim().charAt(0).toUpperCase());
+                const avatar = u.photoURL
+                    ? `<img src="${esc(u.photoURL)}" alt="" referrerpolicy="no-referrer" class="w-10 h-10 rounded-full object-cover shrink-0">`
+                    : `<div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0">${initial}</div>`;
+                const status = u.blocked
+                    ? '<span class="inline-block text-xs font-bold px-2.5 py-1 rounded-full bg-rose-100 text-rose-700">Đã chặn</span>'
+                    : '<span class="inline-block text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">Cho phép</span>';
+                const action = u.blocked
+                    ? `<button type="button" data-act="unblock" data-id="${esc(u.id)}" class="btn btn-unblock w-full md:w-auto">Bỏ chặn</button>`
+                    : `<button type="button" data-act="block" data-id="${esc(u.id)}" class="btn btn-block w-full md:w-auto">Chặn</button>`;
+                return `
+                    <div class="user-row">
+                        <div class="flex items-center gap-3 min-w-0">
+                            ${avatar}
+                            <div class="min-w-0">
+                                <div class="font-bold truncate">${esc(u.name || '(chưa có tên)')}</div>
+                                <div class="text-sm text-slate-500 truncate">${esc(u.email)}</div>
+                            </div>
+                        </div>
+                        <div><span class="cell-label">Số lần vào: </span><b>${esc(u.visits || 0)}</b></div>
+                        <div class="text-sm"><span class="cell-label">Lần đầu: </span>${fmt(toDate(u.firstSeen))}</div>
+                        <div class="text-sm"><span class="cell-label">Gần nhất: </span>${fmt(toDate(u.lastSeen))}</div>
+                        <div>${status}</div>
+                        <div>${action}</div>
+                    </div>`;
+            }).join('');
+
+            const empty = $('empty');
+            empty.hidden = list.length > 0;
+            empty.textContent = users.length === 0
+                ? 'Chưa có ai đăng nhập. Người dùng sẽ xuất hiện ở đây sau lần vào đầu tiên.'
+                : 'Không có người dùng nào khớp.';
+        }
+
+        $('search').addEventListener('input', render);
+
+        document.querySelectorAll('[data-filter]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                filter = btn.dataset.filter;
+                document.querySelectorAll('[data-filter]').forEach((b) => {
+                    b.className = 'btn ' + (b.dataset.filter === filter ? 'btn-primary' : 'btn-soft');
+                });
+                render();
+            });
+        });
+
+        // ---------- Chặn / bỏ chặn ----------
+        $('rows').addEventListener('click', async (e) => {
+            const btn = e.target.closest('button[data-act]');
+            if (!btn) return;
+            const u = users.find((x) => x.id === btn.dataset.id);
+            if (!u) return;
+            const block = btn.dataset.act === 'block';
+            const who = u.name || u.email || 'người dùng này';
+            if (!confirm((block ? 'Chặn ' : 'Bỏ chặn ') + who + '?')) return;
+            btn.disabled = true;
+            try {
+                await updateDoc(doc(db, 'users', u.id), { blocked: block });
+            } catch (err) {
+                $('data-error').textContent = 'Không cập nhật được (' + (err.code || 'lỗi không rõ') + ').';
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
