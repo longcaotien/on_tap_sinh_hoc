@@ -14,12 +14,14 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 const $ = (id) => document.getElementById(id);
-const panels = ['loading', 'login', 'blocked', 'error'];
+const panels = ['loading', 'login', 'blocked', 'error', 'maintenance'];
 
 function showPanel(name) {
   panels.forEach((p) => { $('gate-' + p).hidden = p !== name; });
 }
 function showError(text) {
+  restore = () => showError(text);
+  if (maintenance) return;
   $('gate-error-text').textContent = text;
   document.body.dataset.auth = 'gate';
   showPanel('error');
@@ -111,6 +113,16 @@ function setCloud(user) {
       await setDoc(scoreRef, next);
       return { best: next.best, attempts: next.attempts };
     },
+    // Trang quản lý dùng để biết ai đang trực tuyến và đang làm gì
+    savePresence(data) {
+      return setDoc(doc(db, 'presence', user.uid), {
+        ...data,
+        name: (user.displayName || '').slice(0, 80),
+        email: user.email || '',
+        photoURL: user.photoURL || '',
+        ts: serverTimestamp()
+      });
+    },
     async loadLeaderboard() {
       const snap = await getDocs(query(collection(db, 'scores'), orderBy('best', 'desc'), limit(50)));
       return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -119,7 +131,36 @@ function setCloud(user) {
   window.dispatchEvent(new Event('bio:user'));
 }
 
+// ---------- Chế độ bảo trì (quản lý bật/tắt ở admin.html) ----------
+let maintenance = false;
+let restore = null;   // vẽ lại trạng thái bình thường khi hết bảo trì
+
+function showMaintenance() {
+  document.body.dataset.auth = 'maintenance';
+  if (window.bioUserMenu) window.bioUserMenu.close();
+  $('user-chip').style.display = 'none';
+  setCloud(null);   // ngừng ghi dữ liệu trong lúc bảo trì
+  showPanel('maintenance');
+}
+
+onSnapshot(
+  doc(db, 'settings', 'site'),
+  (s) => {
+    const d = s.data() || {};
+    const was = maintenance;
+    maintenance = d.maintenance === true;
+    $('gate-maintenance-text').textContent = (typeof d.message === 'string' && d.message.trim())
+      ? d.message.trim().slice(0, 300)
+      : 'Người quản lý đang tạm đóng trang để cập nhật. Vui lòng quay lại sau.';
+    if (maintenance) showMaintenance();
+    else if (was && restore) restore();
+  },
+  () => { /* chưa cập nhật firestore.rules hoặc mất mạng: coi như không bảo trì */ }
+);
+
 function unlock(user) {
+  restore = () => unlock(user);
+  if (maintenance) { showMaintenance(); return; }
   document.body.dataset.auth = 'ok';
   const label = user.displayName || user.email || 'Tài khoản';
   $('user-chip-name').textContent = label;
@@ -130,6 +171,8 @@ function unlock(user) {
   setCloud(user);
 }
 function lock(user) {
+  restore = () => lock(user);
+  if (maintenance) { showMaintenance(); return; }
   document.body.dataset.auth = 'blocked';
   if (window.bioUserMenu) window.bioUserMenu.close();
   $('user-chip').style.display = 'none';
@@ -138,19 +181,28 @@ function lock(user) {
   showPanel('blocked');
 }
 
+function showLogin() {
+  restore = showLogin;
+  if (maintenance) { showMaintenance(); return; }
+  $('user-chip').style.display = 'none';
+  document.body.dataset.auth = 'gate';
+  showPanel('login');
+}
+
 onAuthStateChanged(auth, async (user) => {
   if (unsubProfile) { unsubProfile(); unsubProfile = null; }
 
   if (!user) {
     setCloud(null);
-    $('user-chip').style.display = 'none';
-    document.body.dataset.auth = 'gate';
-    showPanel('login');
+    showLogin();
     return;
   }
 
-  document.body.dataset.auth = 'pending';
-  showPanel('loading');
+  restore = null;
+  if (!maintenance) {
+    document.body.dataset.auth = 'pending';
+    showPanel('loading');
+  }
 
   try {
     const ref = doc(db, 'users', user.uid);

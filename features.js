@@ -309,6 +309,44 @@
         });
     }
 
+    // ---------- Báo hoạt động hiện tại cho trang quản lý ----------
+    // Gửi tối đa 20 giây/lần khi có thay đổi, và nhắc lại mỗi phút khi tab đang mở.
+    var PRESENCE_GAP = 20000, PRESENCE_BEAT = 60000;
+    var activityNow = { mode: 'home' };
+    var presenceSentAt = 0, presenceTimer = null, presenceLast = '';
+
+    function sendPresence() {
+        clearTimeout(presenceTimer); presenceTimer = null;
+        if (!window.bioCloud || !uid || !window.bioCloud.savePresence) return;
+        if (document.visibilityState === 'hidden') return;
+        var a = activityNow;
+        var data = { mode: a.mode === 'study' || a.mode === 'practice' ? a.mode : 'home' };
+        if (data.mode !== 'home') {
+            data.topic = String(a.topic || 'all').slice(0, 10);
+            data.answered = a.answered | 0;
+            data.total = a.total | 0;
+            data.score = round2(Math.max(0, Math.min(10, +a.score || 0)));
+        }
+        presenceSentAt = Date.now();
+        presenceLast = JSON.stringify(data);
+        window.bioCloud.savePresence(data).catch(function () { /* chưa cập nhật rules hoặc mất mạng */ });
+    }
+
+    function activity(a) {
+        activityNow = a || { mode: 'home' };
+        if (!uid) return;
+        var wait = PRESENCE_GAP - (Date.now() - presenceSentAt);
+        if (wait <= 0) sendPresence();
+        else if (!presenceTimer) presenceTimer = setTimeout(sendPresence, wait);
+    }
+
+    setInterval(function () {
+        if (uid && Date.now() - presenceSentAt >= PRESENCE_BEAT) sendPresence();
+    }, 15000);
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible' && uid && Date.now() - presenceSentAt >= PRESENCE_GAP) sendPresence();
+    });
+
     // ---------- Đồng bộ khi đăng nhập / đăng xuất ----------
     function onUser() {
         var c = window.bioCloud;
@@ -316,6 +354,8 @@
         loadLocal();
         refreshUI();
         if (!uid) return;
+        presenceSentAt = 0;
+        sendPresence();
         var forUid = uid;
         c.loadProgress().then(function (cloud) {
             if (uid !== forUid) return;
@@ -340,6 +380,7 @@
         newAttempt: function () { savedTopics = {}; },
         record: record,
         onProgress: onProgress,
+        activity: activity,
         startReview: startReview,
         openLeaderboard: openLeaderboard,
         openHistory: openHistory
