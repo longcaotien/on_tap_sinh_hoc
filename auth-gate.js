@@ -61,7 +61,28 @@ loginBtn.addEventListener('click', async () => {
 
 function signOutAndReset() { return signOut(auth); }
 $('gate-blocked-out').addEventListener('click', signOutAndReset);
-$('user-chip-out').addEventListener('click', signOutAndReset);
+
+// Nút tài khoản: bấm để mở menu nhỏ, đăng xuất phải bấm thêm một lần và xác nhận
+function setMenu(open) {
+  $('user-menu').hidden = !open;
+  $('user-chip-toggle').setAttribute('aria-expanded', String(open));
+}
+$('user-chip-toggle').addEventListener('click', (e) => {
+  e.stopPropagation();
+  setMenu($('user-menu').hidden);
+});
+document.addEventListener('click', (e) => {
+  if (!$('user-chip').contains(e.target)) setMenu(false);
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setMenu(false); });
+$('user-chip-out').addEventListener('click', () => {
+  if (confirm('Bạn muốn đăng xuất khỏi tài khoản này?')) {
+    setMenu(false);
+    signOutAndReset();
+  } else {
+    setMenu(false);
+  }
+});
 
 const store = {
   get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
@@ -73,11 +94,16 @@ let unsubProfile = null;
 
 function unlock(user) {
   document.body.dataset.auth = 'ok';
-  $('user-chip-name').textContent = user.displayName || user.email || 'Tài khoản';
-  $('user-chip').style.display = 'flex';
+  const label = user.displayName || user.email || 'Tài khoản';
+  $('user-chip-name').textContent = label;
+  $('user-chip-email').textContent = user.email || '';
+  $('user-chip-initial').textContent = label.trim().charAt(0).toUpperCase();
+  setMenu(false);
+  $('user-chip').style.display = 'block';
 }
 function lock(user) {
   document.body.dataset.auth = 'blocked';
+  setMenu(false);
   $('user-chip').style.display = 'none';
   $('gate-blocked-email').textContent = user.email || '';
   showPanel('blocked');

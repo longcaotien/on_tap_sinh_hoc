@@ -40,4 +40,4 @@ Mở `https://longcaotien.github.io/on_tap_sinh_hoc/admin.html`, đăng nhập b
 - Người dùng mở web trong Zalo/Facebook sẽ không đăng nhập Google được (Google không cho). Trang sẽ nhắc họ mở bằng Chrome/Safari.
 - Chặn là chặn theo **tài khoản Google**. Người bị chặn có thể dùng tài khoản Google khác để vào lại.
 - Bộ câu hỏi hiện nằm trong `index.html`, nên người rành kỹ thuật vẫn xem được bằng "xem nguồn trang" dù bị chặn. Muốn chặn triệt để thì phải chuyển bộ câu hỏi lên Firestore.
-- Trang có lưu tên, email và ảnh đại diện Google của người dùng; trang đăng nhập đã có dòng thông báo cho họ.
+- Trang có lưu tên, email và ảnh đại diện Google của người dùng khi họ đăng nhập.
