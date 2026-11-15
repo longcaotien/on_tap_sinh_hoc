@@ -448,7 +448,7 @@
         <!-- ==================== 1. GIAO DIỆN TRANG CHỦ (HOME VIEW) ==================== -->
         <section id="view-home" class="space-y-10 fade-in">
             <button onclick="window.secureExam ? window.secureExam.start() : alert('Đang tải chức năng thi, thử lại sau ít giây.')" class="w-full rounded-2xl bg-gradient-to-r from-indigo-800 via-violet-700 to-purple-700 p-5 sm:p-6 text-white shadow-xl hover:shadow-2xl hover:-translate-y-0.5 active:translate-y-0 transition-all text-left flex items-center justify-between gap-4 focus-visible:outline-4 focus-visible:outline-amber-400">
-                <span><span class="block uppercase tracking-widest text-xs font-bold text-indigo-200">Mới · Đề bảo vệ hai bài</span><strong class="block text-xl sm:text-2xl mt-1">Kiểm tra 20 câu ngẫu nhiên</strong><span class="block text-sm text-indigo-100 mt-1">10 câu Bài 6 + 10 câu Bài 8 · theo dõi chuyển tab</span></span>
+                <span><span class="block uppercase tracking-widest text-xs font-bold text-indigo-200">Mới · Đề luyện miễn phí hai bài</span><strong class="block text-xl sm:text-2xl mt-1">Làm đề miễn phí 20 câu ngẫu nhiên</strong><span class="block text-sm text-indigo-100 mt-1">10 câu Bài 6 + 10 câu Bài 8 · theo dõi chuyển tab</span></span>
                 <i class="fa-solid fa-arrow-right text-2xl" aria-hidden="true"></i>
             </button>
             <!-- Hero Banner -->
@@ -763,7 +763,7 @@
         <section id="view-questions" class="hidden space-y-6 fade-in">
             
             <button id="exam-start" onclick="window.secureExam ? window.secureExam.start() : alert('Đang tải chức năng thi, thử lại sau ít giây.')" class="w-full rounded-2xl p-5 sm:p-6 text-left bg-gradient-to-r from-indigo-800 via-violet-700 to-purple-700 text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all focus-visible:outline-4 focus-visible:outline-amber-400 flex items-center justify-between gap-4">
-                <span><span class="block text-xs uppercase tracking-widest text-indigo-200 font-bold">Đề kiểm tra bảo vệ</span><strong class="block text-lg sm:text-xl mt-1">Bắt đầu đề 20 câu ngẫu nhiên</strong><span class="block text-sm text-indigo-100 mt-1">Lấy từ cả Bài 6 và Bài 8 · có cảnh báo rời trang</span></span>
+                <span><span class="block text-xs uppercase tracking-widest text-indigo-200 font-bold">Đề luyện miễn phí</span><strong class="block text-lg sm:text-xl mt-1">Làm đề miễn phí 20 câu ngẫu nhiên</strong><span class="block text-sm text-indigo-100 mt-1">Lấy từ cả Bài 6 và Bài 8 · có cảnh báo rời trang</span></span>
                 <i class="fa-solid fa-arrow-right text-xl" aria-hidden="true"></i>
             </button>
             <!-- THANH ĐIỀU KHIỂN (đóng/mở được) -->
@@ -897,9 +897,9 @@
 
         <section id="secure-view" class="hidden max-w-3xl mx-auto space-y-5 fade-in" aria-labelledby="secure-title">
             <div class="rounded-3xl bg-gradient-to-br from-indigo-950 via-indigo-800 to-violet-800 text-white p-6 sm:p-8 shadow-xl">
-                <div class="text-indigo-200 uppercase tracking-widest text-xs font-bold">Đề thi bảo vệ · bài 6 & bài 8</div>
+                <div class="text-indigo-200 uppercase tracking-widest text-xs font-bold">Đề luyện miễn phí · bài 6 & bài 8</div>
                 <h2 id="secure-title" class="text-2xl sm:text-3xl font-extrabold mt-2">Kiểm tra 20 câu</h2>
-                <p class="mt-2 text-indigo-100 text-sm">10 câu mỗi bài · ABCD, Đúng/Sai & trả lời ngắn · 25 phút · chỉ hiển thị từng câu.</p>
+                <p class="mt-2 text-indigo-100 text-sm">10 câu mỗi bài · ABCD, Đúng/Sai & trả lời ngắn · 25 phút. Điểm và cảnh báo chỉ lưu trên thiết bị, không tính bảng xếp hạng.</p>
                 <div class="flex flex-wrap justify-between items-center gap-3 mt-5">
                     <span id="secure-progress" class="font-bold px-3 py-1.5 bg-white/15 rounded-lg">Đang tải đề...</span>
                     <span id="secure-timer" class="font-bold tabular-nums" role="timer"></span>
@@ -932,11 +932,14 @@
 
     <!-- ==================== DỮ LIỆU & LOGIC JAVASCRIPT ==================== -->
     <script src="questions.js?v=__BUILD__"></script>
+    <script src="free-exam-core.js?v=__BUILD__"></script>
     <script>
 
         // =========================================================================
         // 5. QUẢN LÝ TRẠNG THÁI & LOGIC XÁO TRỘN (SHUFFLE CÂU HỎI & ĐÁP ÁN ABCD)
         // =========================================================================
+        // Dữ liệu gốc công khai, dùng cho đề miễn phí chạy hoàn toàn trong trình duyệt.
+        window.bioExamSource = { mcq: originalMCQData, tf: originalTFData, sa: originalSAData };
         let currentMode = 'home';     // 'home' | 'study' | 'practice'
         let currentTopic = 'all';     // 'all' | 'b6' | 'b8'
         let currentPartFilter = 'all';// 'all' | 'part1' | 'part2' | 'part3'

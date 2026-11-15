@@ -1,6 +1,6 @@
 # Cài đặt đăng nhập Google và trang quản lý
 
-Firebase đã được cấu hình trong `firebase-config.js`. Phần đăng nhập/ôn tập có thể dùng Firebase miễn phí trong hạn mức; **đề bảo vệ cần Cloud Functions (gói Blaze, có thể phát sinh phí)**. Nếu chưa triển khai Functions, chỉ phần ôn tập/luyện tập cũ hoạt động.
+Firebase đã được cấu hình trong `firebase-config.js`. **Đề 20 câu miễn phí không cần Cloud Functions, gói Blaze hoặc nhập file JSON.** Nó dùng 50 câu trong `questions.js`, chạy và lưu điểm trên thiết bị; Firebase Authentication/Firestore cho đăng nhập/admin có hạn mức gói miễn phí (Spark).
 
 ## 1. Tạo dự án Firebase
 1. Vào https://console.firebase.google.com và đăng nhập bằng tài khoản Google của bạn.
@@ -47,35 +47,19 @@ Mở `https://longcaotien.github.io/on_tap_sinh_hoc/admin.html`, đăng nhập b
 
 Hai tính năng trên dùng thêm hai bảng `settings` và `presence`, nên cũng cần Publish lại `firestore.rules`.
 
-## 7. Bảng xếp hạng và ôn tập câu sai
-Đề bảo vệ lưu điểm do Cloud Functions chấm vào `secureScores` (không chứa email). Luyện tập phản xạ chỉ lưu kết quả tham khảo trên máy và `progress` (câu sai, lịch sử); không được ghi vào bảng xếp hạng bảo vệ.
-**Mỗi khi `firestore.rules` thay đổi, phải dán lại toàn bộ file vào Firestore Database → Rules → Publish**, nếu không bảng xếp hạng và trang quản lý sẽ báo thiếu quyền. Khi chưa Publish, câu sai vẫn được lưu trên máy của người học.
+## 7. Đề luyện miễn phí 20 câu
 
-Điểm đề bảo vệ được chấm trên máy chủ. Dữ liệu cũ trong `scores` từng do trình duyệt tự ghi có thể không đáng tin; bảng mới `secureScores` bắt đầu trống và không kế thừa điểm cũ.
-
-## Lưu ý
-- Người dùng mở web trong Zalo/Facebook sẽ không đăng nhập Google được (Google không cho). Trang sẽ nhắc họ mở bằng Chrome/Safari.
-- Chặn là chặn theo **tài khoản Google**. Người bị chặn có thể dùng tài khoản Google khác để vào lại.
-- Bộ **ôn tập cũ** nằm trong `questions.js` và luôn công khai. Ngân hàng đề bảo vệ có thể nhập từ bộ công khai để luyện, hoặc dùng câu mới để bảo mật nội dung; chỉ nhập qua trang admin vào Firestore, không commit đáp án riêng lên GitHub.
-- Trang có lưu tên, email và ảnh đại diện Google của người dùng khi họ đăng nhập.
+- Chọn **Làm đề miễn phí 20 câu ngẫu nhiên** ở trang chủ. Hệ thống lấy 10 câu Bài 6 và 10 câu Bài 8 từ 50 câu công khai: mỗi bài 6 ABCD, 2 Đúng/Sai, 2 trả lời ngắn. Câu hỏi và lựa chọn ABCD được trộn mỗi lượt; mệnh đề Đúng/Sai không gắn hình cũng được trộn. Hai thiết bị có thể thấy đề khác nhau. **Không cần chọn file ở trang admin**, không cần triển khai Functions hay bật Blaze.
+- Một lượt có 25 phút. Tiến độ, điểm và số lần cảnh báo được lưu trong `localStorage` của trình duyệt đang dùng để tải lại có thể tiếp tục. Admin có thể đặt giới hạn cảnh báo và bật/tắt cảnh báo mất tiêu điểm qua `settings/site` trên Firestore (cần đăng nhập/cập nhật Rules); chuyển tab luôn được cảnh báo. Nếu chưa đọc được cài đặt, mặc định 3 cảnh báo.
+- **Đây chỉ là luyện tập, không phải hệ thống thi chống gian lận.** `questions.js` công khai chứa toàn bộ đáp án; người dùng có thể sửa điểm, giờ và cảnh báo trong trình duyệt, hoặc dùng thiết bị khác. Không phát hiện được Gemini trên màn hình. Điểm đề miễn phí **không gửi lên `secureScores`/bảng xếp hạng**, admin không thể xác thực điểm từ chế độ này. Bảng xếp hạng cũ chỉ dành cho chế độ máy chủ tùy chọn.
+- Mục **Ngân hàng đề cho chế độ máy chủ** ở trang admin **không ảnh hưởng** đến đề miễn phí. Nếu chỉ muốn miễn phí thì bỏ qua.
 
 ## 8. Tự cập nhật phiên bản
-Mỗi lần deploy, GitHub Actions gắn mã phiên bản vào trang và tạo `version.json`. Trang của người học hỏi lại file này mỗi lần mở trang, mỗi lần quay lại tab và mỗi phút; thấy bản mới thì tự tải lại, bỏ qua bộ nhớ đệm. Riêng người đang làm dở bài kiểm tra chỉ thấy thanh nhắc "Cập nhật ngay" và được tải lại khi làm xong, để không mất bài.
 
-## Giám sát đề 20 câu và giới hạn bảo mật
-- Trang quản lý → **Giám sát đề 20 câu**: chọn số cảnh báo tối đa (1–10), bật/tắt theo dõi **mất tiêu điểm**. Chuyển tab luôn bị cảnh báo. Đạt giới hạn sẽ dừng phiên đề trên máy chủ. Sau khi thay đổi `firestore.rules`, phải Publish lại trong Firebase Console để cài đặt và dữ liệu hoạt động.
-- Trình duyệt **không cho trang web xem ứng dụng/cửa sổ khác hoặc nhận biết Gemini trên màn hình**. Mất tiêu điểm chỉ là dấu hiệu gián tiếp, có thể cảnh báo nhầm (thông báo, trình quản lý mật khẩu, công cụ hỗ trợ). Không thu màn hình hay bật camera.
-- GitHub Pages là hosting tĩnh: bộ ôn tập `questions.js` và HTML **không thể giấu khỏi người học**, kể cả có chặn chuột phải, F12 hay đổi tên file. Quy trình deploy nay chỉ xuất bản các tài nguyên cần thiết, không xuất bản rules, tài liệu, `.git`. Không đặt dữ liệu bí mật vào các file công khai.
-- **Không thể chống gian lận tuyệt đối trên web tĩnh.** Điểm đề bảo vệ và các cảnh báo nhận được đã được lưu phía máy chủ; tải lại sẽ tiếp tục đề đang làm. Tuy vậy, tín hiệu rời trang có thể không gửi được khi tắt mạng/đóng trình duyệt, và người học vẫn có thể dùng thiết bị khác. Đề bảo vệ đã có backend xác thực và chấm điểm, nhưng với kỳ thi quan trọng vẫn cần giám sát trực tiếp. Không coi cảnh báo mất tiêu điểm là bằng chứng dùng AI.
+GitHub Actions triển khai giao diện lên Pages. Đang làm dở đề sẽ thấy thanh nhắc cập nhật; làm xong mới tải phiên bản mới. Chỉ các tài nguyên công khai cần thiết được đưa lên Pages; không đưa rules hay thư mục Git lên hosting.
 
+## 9. Nếu sau này muốn chấm điểm trên máy chủ (tùy chọn, KHÔNG miễn phí bảo đảm)
 
-## 9. Triển khai đề 20 câu bảo vệ (bắt buộc để nút mới hoạt động)
+Mã mẫu ở `functions/`, `firebase.json` và mục nhập JSON trong trang admin còn lại cho phương án Cloud Functions. Firebase Functions thế hệ 2 yêu cầu gói **Blaze** có thể phát sinh phí. Giao diện đề miễn phí hiện tại **không gọi Functions**, kể cả khi chúng đã được triển khai. Không bật Blaze chỉ để sửa lỗi thông báo cũ.
 
-**GitHub Pages chỉ triển khai giao diện. Firebase Functions và Firestore Rules không được triển khai tự động bởi workflow Pages.** Bạn cần thực hiện một lần dưới tài khoản chủ sở hữu Firebase:
-
-1. Firebase Console → **Billing**: bật gói **Blaze** (Cloud Functions thế hệ 2 yêu cầu thanh toán theo sử dụng; có thể có hạn mức miễn phí, nhưng không đảm bảo không phát sinh phí). Đặt cảnh báo ngân sách. Bật Firestore, Authentication Google và vùng `asia-southeast1`. Node.js 22 cần dự án/CLI hỗ trợ bản hiện tại.
-2. Cài Firebase CLI bằng `npm install -g firebase-tools`, đăng nhập bằng `firebase login` **trên máy của bạn** (không gửi mật khẩu hoặc token vào chat). Ở thư mục repo, chạy `cd functions && npm ci && npm test && cd ..`, sau đó `firebase deploy --only functions,firestore:rules --project biomaster-df0b3`. Nếu CLI yêu cầu bật API của Google Cloud, xác nhận trong tài khoản sở hữu dự án.
-3. Để dùng **đúng 50 câu ôn tập hiện có** (36 ABCD, 8 Đúng/Sai, 6 Trả lời ngắn), chạy `node scripts/export-legacy-bank.cjs` hoặc tải `ngan-hang-de-50-cau.json` đã tạo trong workspace. Trên thiết bị của quản lý, mở **Ngân hàng đề bảo vệ** → **Chọn tệp** JSON đó → **Nhập ngân hàng đề**. File JSON đã được `.gitignore` loại khỏi Git và không đưa lên Pages. Mỗi đề ngẫu nhiên lấy 10 câu/bài gồm 6 ABCD, 2 Đúng/Sai, 2 Trả lời ngắn/bài; thứ tự câu và lựa chọn ABCD (cũng như mệnh đề Đ/S không có hình) được xáo trộn riêng cho từng phiên, nên hai tài khoản trên hai thiết bị có thể nhận hai đề khác nhau. Cùng một tài khoản trên nhiều thiết bị sẽ tiếp tục **cùng một phiên**, không bốc lại đề mới. Mỗi câu Đúng/Sai chỉ tính đúng khi chọn đủ cả 4 ý; trả lời ngắn chọn số lượng đúng. **Vì 50 câu và đáp án gốc đã công khai trong `questions.js`, dùng chính bộ này không thể giấu đáp án hay bảo đảm chống gian lận.** Muốn bảo mật nội dung, biên soạn bộ câu hỏi mới không công khai rồi nhập JSON riêng.
-4. Đẩy code giao diện lên nhánh deploy GitHub Pages của bạn, chờ Pages cập nhật, rồi đăng nhập Google và thử hoàn thành 1 đề. Điểm của đề bảo vệ sẽ hiện trong `secureScores` và bảng xếp hạng mới. Bảng điểm `scores` cũ không còn sử dụng.
-
-**Lưu ý bảo mật:** `examBank/current` và `examSessions/{uid}` không cho người học đọc trực tiếp qua Firestore Rules. Cloud Functions dùng Admin SDK đọc chúng rồi chỉ trả về *một câu* chưa kèm đáp án. Khi làm xong mới trả điểm. 25 phút/đề, tối đa 5 lượt bắt đầu/ngày UTC, tối thiểu 1 phút giữa các lượt. Số cảnh báo được chốt khi bắt đầu đề. Tắt mạng/đóng tab quá nhanh có thể làm mất tín hiệu rời trang; không có cách phát hiện đáng tin cậy Gemini, màn hình khác hay thiết bị khác. Bảng `presence` và `progress` của chế độ luyện tập vẫn là dữ liệu do client gửi, **không dùng làm bằng chứng chống gian lận**.
+Nếu tự triển khai lại phiên bản máy chủ, cần thay giao diện đề miễn phí bằng client Functions tương ứng và kiểm thử riêng. Không dùng 50 câu công khai để kỳ vọng giấu đáp án. Có thể tạo file JSON theo định dạng tùy chọn bằng `node scripts/export-legacy-bank.cjs`, nhưng file có đáp án phải giữ ngoài Git. Dữ liệu `secureScores` trước đây không đại diện cho điểm đề miễn phí.

@@ -174,8 +174,8 @@
             </section>
 
             <section class="card p-4 sm:p-5" aria-label="Ngân hàng đề bảo vệ">
-                <h2 class="font-extrabold text-lg">Ngân hàng đề bảo vệ (riêng tư)</h2>
-                <p class="text-sm text-slate-600 mt-1">Chọn file JSON trên thiết bị (ít nhất 10 câu mỗi bài). Có thể dùng file xuất từ 50 câu ôn tập để thử, nhưng <strong>đáp án của các câu đó đã công khai trong questions.js</strong>; muốn đề bí mật thật sự, hãy biên soạn câu mới và không commit file lên GitHub.</p>
+                <h2 class="font-extrabold text-lg">Ngân hàng đề cho chế độ máy chủ (tùy chọn)</h2>
+                <p class="text-sm text-slate-600 mt-1"><strong>Đề luyện miễn phí hiện lấy trực tiếp 50 câu trong questions.js: không cần chọn hay tải file JSON.</strong> Mục nhập bên dưới chỉ dành cho phiên bản chấm qua Firebase Functions (cần gói Blaze); không ảnh hưởng đến đề miễn phí. Đáp án 50 câu hiện có đã công khai trong questions.js.</p>
                 <p class="text-xs text-slate-500 mt-2">Mỗi câu có id, topic, type (mcq / tf / sa), text. ABCD: options gồm 4 đáp án, answer là chỉ số 0–3. Đúng/Sai: statements gồm 4 ý, answer gồm 4 giá trị true/false. Trả lời ngắn: items, maxChoices và answer là số nguyên. File mẫu: ngan-hang-de-50-cau.json (tạo bằng node scripts/export-legacy-bank.cjs).</p>
                 <div class="flex flex-wrap gap-3 items-center mt-4">
                     <input id="bank-file" type="file" accept=".json,application/json" aria-label="Chọn file JSON bộ đề" class="text-sm max-w-full">

@@ -1,8 +1,7 @@
 # BioMaster 11
 
-Ôn tập Sinh học Bài 6 và Bài 8 (GitHub Pages) và đề 20 câu bảo vệ do Firebase Cloud Functions chấm.
+Trang ôn tập Sinh học 11 Bài 6 và Bài 8 trên GitHub Pages. **Đề 20 câu miễn phí** lấy từ 50 câu trong `questions.js`: 10 câu mỗi bài, gồm 12 ABCD, 4 Đúng/Sai, 4 trả lời ngắn; trộn riêng mỗi lượt và lưu tiến độ/điểm/cảnh báo trên trình duyệt. Không cần Firebase Cloud Functions, không cần bật Blaze, không cần nhập file JSON để dùng đề này.
 
-- Bộ 50 câu luyện tập trong `questions.js` **công khai**, chỉ để ôn tập.
-- Đề 20 câu lấy 10 câu mỗi bài từ Firestore, hỗ trợ ABCD / Đúng-Sai / trả lời ngắn; phiên và chấm điểm ở máy chủ. Xuất file 50 câu hiện có bằng `node scripts/export-legacy-bank.cjs` rồi nhập ở admin (đáp án của bộ công khai vẫn xem được).
-- Triển khai Functions/Firestore Rules và nhập ngân hàng riêng theo [FIREBASE_SETUP.md](FIREBASE_SETUP.md). Nếu chưa làm bước này, nút đề bảo vệ sẽ không hoạt động.
-- Không có giải pháp trình duyệt nào ngăn gian lận hoặc phát hiện AI trên màn hình khác tuyệt đối.
+**Giới hạn:** đáp án và điểm tính trên thiết bị nên ai biết kỹ thuật đều xem hoặc sửa được; cảnh báo chuyển tab/mất tiêu điểm không phát hiện AI và không phải bằng chứng gian lận. Không dùng bảng điểm địa phương cho thi chính thức. Đăng nhập Google và cài cảnh báo ở admin dùng Firebase Authentication/Firestore trong hạn mức miễn phí (nếu đã cấu hình).
+
+Xem [FIREBASE_SETUP.md](FIREBASE_SETUP.md) để cấu hình tài khoản/admin và giới hạn của chế độ miễn phí. Mã Cloud Functions còn trong `functions/` là phương án máy chủ **tùy chọn**, không được giao diện miễn phí gọi đến.
