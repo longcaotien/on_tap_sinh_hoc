@@ -234,6 +234,21 @@
         }
         #mini-score:not(.hidden) { display: inline-flex; align-items: center; white-space: nowrap; }
 
+        /* Đề thi toàn màn hình: chỉ phần câu hỏi cuộn, tránh giật lên đầu trang mỗi câu. */
+        #secure-view:fullscreen { max-width:none; width:100%; height:100%; display:flex; flex-direction:column; gap:1rem;
+            overflow:hidden; padding:clamp(.75rem,2vw,1.5rem); background:linear-gradient(145deg,#eef2ff,#f0fdf4); color:#1e293b; }
+        #secure-view:fullscreen > * + * { margin-top:0 !important; }
+        #secure-view:fullscreen #secure-question { min-height:0; flex:1; overflow-y:auto; overscroll-behavior:contain; }
+        #secure-view:fullscreen #secure-warning { margin:0; }
+        #secure-view:fullscreen #secure-message { margin:0; }
+        #exam-progress-track { height:.4rem; border-radius:999px; background:rgba(255,255,255,.25); overflow:hidden; margin-top:.9rem; }
+        #exam-progress-fill { display:block; width:0; height:100%; border-radius:inherit; background:linear-gradient(90deg,#34d399,#a5b4fc); transition:width .35s ease; }
+        #secure-question button:not(:disabled) { transition:background-color .16s ease, border-color .16s ease, transform .16s ease, box-shadow .16s ease; }
+        #secure-question button:not(:disabled):active { transform:scale(.99); }
+        #secure-view .exam-panel { border-radius:1rem; border:1px solid #c7d2fe; background:#fff; box-shadow:0 12px 32px -16px #312e81; }
+        #secure-view .exam-gate { border-radius:1rem; padding:1.25rem; background:#fff7ed; color:#78350f; border:1px solid #fed7aa; }
+        @keyframes examAppear { from { opacity:.5; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
+        @media (prefers-reduced-motion:no-preference) { #secure-question.exam-enter > * { animation:examAppear .22s ease-out both; } }
         /* ---------- Cổng đăng nhập Google ---------- */
         #auth-gate { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center;
                      padding: 1.25rem; background: #f3f8f4; overflow-y: auto; }
@@ -896,16 +911,27 @@
         </section>
 
         <section id="secure-view" class="hidden max-w-3xl mx-auto space-y-5 fade-in" aria-labelledby="secure-title">
-            <div class="rounded-3xl bg-gradient-to-br from-indigo-950 via-indigo-800 to-violet-800 text-white p-6 sm:p-8 shadow-xl">
+            <div class="rounded-3xl bg-gradient-to-br from-indigo-950 via-indigo-800 to-violet-800 text-white p-5 sm:p-6 shadow-lg">
                 <div class="text-indigo-200 uppercase tracking-widest text-xs font-bold">Đề luyện miễn phí · bài 6 & bài 8</div>
                 <h2 id="secure-title" class="text-2xl sm:text-3xl font-extrabold mt-2">Kiểm tra 20 câu</h2>
-                <p class="mt-2 text-indigo-100 text-sm">10 câu mỗi bài · ABCD, Đúng/Sai & trả lời ngắn · 25 phút. Điểm và cảnh báo chỉ lưu trên thiết bị, không tính bảng xếp hạng.</p>
-                <div class="flex flex-wrap justify-between items-center gap-3 mt-5">
+                <p class="mt-2 text-indigo-100 text-sm">10 câu mỗi bài · 25 phút · điểm và cảnh báo lưu trên thiết bị. Cần toàn màn hình và tự nguyện chia sẻ màn hình để vào đề. Admin xem trực tiếp nếu kết nối được, không ghi hình/không tự phát hiện AI.</p>
+                <div id="exam-progress-track" role="progressbar" aria-label="Tiến độ bài kiểm tra" aria-valuemin="0" aria-valuemax="20" aria-valuenow="0"><i id="exam-progress-fill"></i></div>
+                <div class="flex flex-wrap justify-between items-center gap-3 mt-4">
                     <span id="secure-progress" class="font-bold px-3 py-1.5 bg-white/15 rounded-lg">Đang tải đề...</span>
                     <span id="secure-timer" class="font-bold tabular-nums" role="timer"></span>
                     <button id="secure-leave" type="button" class="px-4 py-2 rounded-xl border border-white/40 hover:bg-white/15 font-bold text-sm">Thoát đề</button>
                 </div>
             </div>
+            <div id="exam-share-gate" class="exam-gate hidden" role="region" aria-label="Cấp quyền chia sẻ màn hình">
+                <h3 class="font-extrabold text-lg">Chia sẻ màn hình để tiếp tục</h3>
+                <p class="text-sm mt-1">Bạn chủ động chọn <strong>Toàn bộ màn hình</strong> trong hộp thoại trình duyệt. Hình ảnh truyền trực tiếp cho quản lý qua kết nối ngang hàng, không lưu video. Nếu từ chối, chọn cửa sổ/tab hoặc dừng chia sẻ, lượt này sẽ thoát. Không thể tự động nhận diện Gemini.</p>
+                <button id="exam-share-btn" type="button" class="mt-3 min-h-11 px-5 rounded-xl bg-indigo-700 text-white font-bold hover:bg-indigo-800">Tôi đồng ý · Chia sẻ toàn bộ màn hình</button>
+            </div>
+            <div id="exam-fullscreen-gate" class="exam-gate hidden" role="region" aria-label="Quay lại toàn màn hình">
+                <p class="font-bold">Để tiếp tục làm đề, hãy bật lại chế độ toàn màn hình.</p>
+                <button id="exam-fullscreen-btn" type="button" class="mt-2 min-h-11 px-5 rounded-xl bg-indigo-700 text-white font-bold">Vào toàn màn hình</button>
+            </div>
+            <div id="exam-stream-status" class="hidden text-xs font-semibold px-3 py-1 rounded-lg bg-indigo-50 text-indigo-900" role="status"></div>
             <p id="secure-warning" class="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950 text-sm font-semibold" role="status"></p>
             <div id="secure-question" class="glass-card rounded-2xl p-5 sm:p-7 shadow-lg border border-indigo-100"></div>
             <p id="secure-message" class="text-sm text-rose-700 font-semibold" role="alert"></p>

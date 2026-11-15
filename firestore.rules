@@ -109,6 +109,48 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Chỉ dùng làm tín hiệu WebRTC cho người học đã cấp quyền chia sẻ màn hình.
+    // Video không lưu vào Firestore. SDP chỉ được chủ phiên và admin xem.
+    match /screenShares/{uid} {
+      allow read: if isAdmin() || isOwner(uid);
+      allow create: if isOwner(uid) && notBlocked()
+        && request.resource.data.keys().hasOnly(['offer', 'status', 'sessionId', 'ts', 'name', 'warnings', 'lastReason', 'lastSignalAt', 'surface'])
+        && request.resource.data.offer is map
+        && request.resource.data.offer.get('type', '') == 'offer'
+        && request.resource.data.offer.get('sdp', '') is string
+        && request.resource.data.offer.get('sdp', '').size() <= 30000
+        && request.resource.data.status == 'live'
+        && request.resource.data.sessionId is string && request.resource.data.sessionId.size() <= 100
+        && request.resource.data.name is string && request.resource.data.name.size() <= 80
+        && request.resource.data.warnings == 0
+        && request.resource.data.lastReason == 'start'
+        && request.resource.data.surface in ['monitor', 'unknown']
+        && request.resource.data.lastSignalAt == request.time
+        && request.resource.data.ts == request.time;
+      allow update: if (isOwner(uid) && notBlocked()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['offer', 'status', 'sessionId', 'ts', 'name', 'warnings', 'lastReason', 'lastSignalAt', 'surface'])
+          && request.resource.data.offer is map
+          && request.resource.data.offer.get('type', '') == 'offer'
+          && request.resource.data.offer.get('sdp', '') is string
+          && request.resource.data.offer.get('sdp', '').size() <= 30000
+          && request.resource.data.status in ['live', 'stopped']
+          && request.resource.data.sessionId is string && request.resource.data.sessionId.size() <= 100
+          && request.resource.data.name is string && request.resource.data.name.size() <= 80
+          && request.resource.data.warnings is int && request.resource.data.warnings >= 0 && request.resource.data.warnings <= 10
+          && request.resource.data.lastReason in ['start', 'hidden', 'blur', 'fullscreen']
+          && request.resource.data.surface in ['monitor', 'unknown']
+          && request.resource.data.ts == request.time)
+        || (isAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answer', 'answeredAt', 'reviewFlag', 'reviewSessionId'])
+          && request.resource.data.get('reviewFlag', false) is bool
+          && request.resource.data.get('reviewSessionId', '') is string
+          && request.resource.data.get('reviewSessionId', '').size() <= 100
+          && request.resource.data.get('answer', {}) is map
+          && request.resource.data.get('answer', {}).get('sdp', '') is string
+          && request.resource.data.get('answer', {}).get('sdp', '').size() <= 30000);
+      allow delete: if isAdmin();
+    }
+
     // Câu sai và lịch sử làm bài của từng người: chỉ chính người đó và quản lý xem được
     match /progress/{uid} {
       allow read: if isAdmin() || isOwner(uid);
