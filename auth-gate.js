@@ -86,7 +86,7 @@ function setCloud(user) {
   }
   if (window.bioCloud && window.bioCloud.uid === user.uid) return;
   const progressRef = doc(db, 'progress', user.uid);
-  const scoreRef = doc(db, 'scores', user.uid);
+  const scoreRef = doc(db, 'secureScores', user.uid);
   window.bioCloud = {
     uid: user.uid,
     async loadProgress() {
@@ -95,23 +95,6 @@ function setCloud(user) {
     },
     saveProgress(data) {
       return setDoc(progressRef, { wrong: data.wrong, history: data.history, ts: data.ts, updatedAt: serverTimestamp() });
-    },
-    // Ghi 1 lượt làm xong; trả về điểm cao nhất và số lượt sau khi ghi
-    async saveScore(score) {
-      const snap = await getDoc(scoreRef);
-      const prev = snap.exists() ? snap.data() : {};
-      const improved = typeof prev.best !== 'number' || score > prev.best;
-      const next = {
-        name: (user.displayName || 'Bạn học').slice(0, 80),
-        photoURL: user.photoURL || '',
-        best: improved ? score : prev.best,
-        bestAt: improved || !prev.bestAt ? serverTimestamp() : prev.bestAt,
-        attempts: (prev.attempts || 0) + 1,
-        lastScore: score,
-        lastAt: serverTimestamp()
-      };
-      await setDoc(scoreRef, next);
-      return { best: next.best, attempts: next.attempts };
     },
     // Trang quản lý dùng để biết ai đang trực tuyến và đang làm gì
     savePresence(data) {
@@ -124,7 +107,7 @@ function setCloud(user) {
       });
     },
     async loadLeaderboard() {
-      const snap = await getDocs(query(collection(db, 'scores'), orderBy('best', 'desc'), limit(50)));
+      const snap = await getDocs(query(collection(db, 'secureScores'), orderBy('best', 'desc'), limit(50)));
       return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     }
   };
@@ -153,7 +136,7 @@ onSnapshot(
       ? d.message.trim().slice(0, 300)
       : 'Người quản lý đang tạm đóng trang để cập nhật. Vui lòng quay lại sau.';
     // Quản lý đóng/mở bảng xếp hạng: báo cho features.js
-    window.bioSite = { leaderboardOff: d.leaderboard === false };
+    window.bioSite = { leaderboardOff: d.leaderboard === false, aiWatch: d.aiWatch === true, warningLimit: Number.isInteger(d.warningLimit) && d.warningLimit >= 1 && d.warningLimit <= 10 ? d.warningLimit : 3 };
     window.dispatchEvent(new Event('bio:site'));
     if (maintenance) showMaintenance();
     else if (was && restore) restore();
@@ -210,7 +193,7 @@ onAuthStateChanged(auth, async (user) => {
   try {
     const ref = doc(db, 'users', user.uid);
     const snap = await getDoc(ref);
-    const profile = { name: user.displayName || '', photoURL: user.photoURL || '' };
+    const profile = { name: (user.displayName || '').slice(0, 80), photoURL: (user.photoURL || '').slice(0, 500) };
     const countedKey = 'bio_counted_' + user.uid;
 
     if (!snap.exists()) {

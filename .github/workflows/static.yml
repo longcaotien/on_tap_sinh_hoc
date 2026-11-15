@@ -37,13 +37,17 @@ jobs:
           V="${GITHUB_SHA::8}"
           sed -i "s/__BUILD__/$V/g" index.html admin.html
           printf '{"v":"%s"}\n' "$V" > version.json
+      - name: Stage public site only
+        run: |
+          mkdir -p public-site
+          cp index.html admin.html auth-gate.js features.js firebase-config.js questions.js secure-exam.js version.json public-site/
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: '.'
+          # Chỉ triển khai các tài nguyên cần thiết, không đưa .git, rules, tài liệu hay workflow lên Pages.
+          path: 'public-site'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5

@@ -1,0 +1,8 @@
+node_modules/
+public-site/
+.firebase/
+.env
+.env.*
+*.log
+# Không commit đáp án đề bảo vệ; nhập riêng qua trang admin.
+private-bank.seed.json

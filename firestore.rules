@@ -24,14 +24,22 @@ service cloud.firestore {
       allow create: if isOwner(uid)
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.blocked == false
-        && request.resource.data.visits == 1;
+        && request.resource.data.visits == 1
+        && request.resource.data.keys().hasOnly(['name', 'photoURL', 'email', 'blocked', 'visits', 'firstSeen', 'lastSeen'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 80
+        && request.resource.data.photoURL is string && request.resource.data.photoURL.size() <= 500
+        && request.resource.data.firstSeen == request.time
+        && request.resource.data.lastSeen == request.time;
 
       // Người dùng chỉ được cập nhật lượt vào / lần gần nhất / tên / ảnh, KHÔNG được tự bỏ chặn
       allow update: if isAdmin()
         || (isOwner(uid)
             && request.resource.data.diff(resource.data).affectedKeys()
                  .hasOnly(['lastSeen', 'visits', 'name', 'photoURL'])
-            && request.resource.data.visits == resource.data.visits + 1);
+            && request.resource.data.visits == resource.data.visits + 1
+            && request.resource.data.name is string && request.resource.data.name.size() <= 80
+            && request.resource.data.photoURL is string && request.resource.data.photoURL.size() <= 500
+            && request.resource.data.lastSeen == request.time);
 
       allow delete: if isAdmin();
     }
@@ -48,30 +56,43 @@ service cloud.firestore {
         || get(/databases/$(database)/documents/settings/site).data.get('leaderboard', true) != false;
     }
 
-    // Bảng xếp hạng: mỗi người 1 dòng (tên, ảnh, điểm cao nhất). KHÔNG chứa email.
-    match /scores/{uid} {
-      // Xem bảng xếp hạng: phải đăng nhập, không bị chặn, và quản lý chưa đóng bảng.
-      // Mỗi người luôn đọc được dòng điểm của chính mình.
+    // Bảng cũ có thể chứa điểm giả: không sử dụng và không cho client ghi tiếp.
+    match /scores/{uid} { allow read, write: if false; }
+
+    // Chỉ Cloud Functions (Admin SDK) được ghi điểm. Quản lý có thể xoá điểm.
+    match /secureScores/{uid} {
       allow read: if isAdmin() || isOwner(uid) || (notBlocked() && leaderboardOpen());
-
-      // Mỗi người chỉ ghi được dòng của chính mình, điểm trong khoảng 0-10
-      allow create, update: if isOwner(uid) && notBlocked()
-        && request.resource.data.keys().hasOnly(['name', 'photoURL', 'best', 'bestAt', 'attempts', 'lastScore', 'lastAt'])
-        && request.resource.data.name is string && request.resource.data.name.size() <= 80
-        && request.resource.data.photoURL is string && request.resource.data.photoURL.size() <= 500
-        && request.resource.data.best is number && request.resource.data.best >= 0 && request.resource.data.best <= 10
-        && request.resource.data.lastScore is number && request.resource.data.lastScore >= 0 && request.resource.data.lastScore <= 10
-        && request.resource.data.attempts is int && request.resource.data.attempts >= 1;
-
-      // Quản lý xoá điểm (đưa một người ra khỏi bảng xếp hạng)
+      allow create, update: if false;
       allow delete: if isAdmin();
+    }
+
+    // Ngân hàng riêng: chỉ tài khoản quản lý được nhập/xem; Cloud Functions đọc bằng Admin SDK.
+    match /examBank/{id} {
+      allow read: if id == 'current' && isAdmin();
+      allow write: if id == 'current' && isAdmin()
+        && request.resource.data.keys().hasOnly(['questions', 'updatedAt'])
+        && request.resource.data.questions is list
+        && request.resource.data.questions.size() >= 20
+        && request.resource.data.questions.size() <= 200;
+    }
+
+    // Đề, đáp án, lượt cảnh báo và trạng thái phiên: CHỈ nằm phía máy chủ.
+    match /examSessions/{uid} { allow read, write: if false; }
+    match /examResults/{uid}/attempts/{attempt} {
+      allow read: if isAdmin() || isOwner(uid);
+      allow write: if false;
     }
 
     // Cài đặt chung của trang (bật/tắt bảo trì). Ai cũng đọc được để thấy thông báo bảo trì
     // ngay cả khi chưa đăng nhập; chỉ quản lý được sửa.
     match /settings/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
+      allow read: if id == 'site';
+      allow write: if id == 'site' && isAdmin()
+        && request.resource.data.keys().hasOnly(['maintenance', 'message', 'leaderboard', 'aiWatch', 'warningLimit', 'updatedAt'])
+        && request.resource.data.get('aiWatch', false) is bool
+        && request.resource.data.get('warningLimit', 3) is int
+        && request.resource.data.get('warningLimit', 3) >= 1
+        && request.resource.data.get('warningLimit', 3) <= 10;
     }
 
     // Hoạt động hiện tại của từng người (đang ở trang nào, làm tới câu mấy): chỉ quản lý xem được

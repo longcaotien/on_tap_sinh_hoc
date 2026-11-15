@@ -160,6 +160,30 @@
                 </div>
             </section>
 
+            <section class="card p-4 sm:p-5" aria-label="Giám sát bài kiểm tra">
+                <h2 class="font-extrabold text-lg text-slate-800"><i class="fa-solid fa-shield-halved text-indigo-700 mr-2"></i>Giám sát đề 20 câu</h2>
+                <p class="text-sm text-slate-600 mt-1">Chuyển tab luôn được cảnh báo. Tuỳ chọn dưới đây chỉ theo dõi mất tiêu điểm trang, <strong>không thể nhận diện Gemini hay AI trên màn hình</strong>.</p>
+                <div class="flex flex-wrap items-end gap-4 mt-4">
+                    <label class="flex items-center gap-2 font-semibold text-sm"><input id="ai-watch" type="checkbox" class="w-5 h-5 accent-indigo-700"> Cảnh báo khi mất tiêu điểm (nghi dùng ứng dụng khác)</label>
+                    <label class="text-sm font-semibold">Số lần cảnh báo tối đa (1–10)
+                        <input id="warning-limit" type="number" min="1" max="10" step="1" value="3" class="block mt-1 w-24">
+                    </label>
+                    <button id="exam-save" type="button" class="btn btn-primary">Lưu giám sát</button>
+                </div>
+                <p id="exam-save-status" role="status" class="text-sm mt-2 text-slate-600"></p>
+            </section>
+
+            <section class="card p-4 sm:p-5" aria-label="Ngân hàng đề bảo vệ">
+                <h2 class="font-extrabold text-lg">Ngân hàng đề bảo vệ (riêng tư)</h2>
+                <p class="text-sm text-slate-600 mt-1">Đề này khác bộ 50 câu ôn tập công khai. Chọn file JSON riêng trên thiết bị của bạn (ít nhất 10 câu mỗi bài). Đáp án chỉ được lưu trong Firestore có quy tắc riêng, <strong>không được commit lên GitHub</strong>.</p>
+                <p class="text-xs text-slate-500 mt-2">Định dạng mỗi câu: {"id":"b6-01","topic":"b6","text":"Câu hỏi?","options":["A","B","C","D"],"answer":0}. answer là chỉ số 0–3 của đáp án đúng.</p>
+                <div class="flex flex-wrap gap-3 items-center mt-4">
+                    <input id="bank-file" type="file" accept=".json,application/json" aria-label="Chọn file JSON bộ đề" class="text-sm max-w-full">
+                    <button id="bank-upload" type="button" class="btn btn-primary">Nhập ngân hàng đề</button>
+                </div>
+                <p id="bank-status" role="status" class="text-sm text-slate-600 mt-2"></p>
+            </section>
+
             <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3" aria-label="Thống kê">
                 <div class="card p-4"><div class="text-xs text-slate-500">Tổng người dùng</div><div id="stat-total" class="mt-1 text-2xl font-extrabold">0</div></div>
                 <div class="card p-4"><div class="text-xs text-slate-500">Đang trực tuyến</div><div class="mt-1 text-2xl font-extrabold text-emerald-700 flex items-center gap-2"><span class="live-dot"></span><span id="stat-online">0</span></div></div>
@@ -320,7 +344,7 @@
         let scores = {};     // uid -> { best, attempts, lastScore, ... }
         let progress = {};   // uid -> { wrong: [], history: [] }
         let presence = {};   // uid -> { mode, topic, answered, total, score, ts }
-        let site = { maintenance: false, message: '', leaderboard: true };
+        let site = { maintenance: false, message: '', leaderboard: true, aiWatch: false, warningLimit: 3 };
         let filter = 'all';
         let tab = 'users';
         let detailId = null;
@@ -408,7 +432,7 @@
                     ? 'Chưa đọc được điểm và câu sai: hãy dán firestore.rules bản mới vào Firebase Console → Firestore Database → Rules → Publish.'
                     : 'Không tải được điểm / câu sai (' + (err.code || 'lỗi không rõ') + ').';
             };
-            unsubs.push(onSnapshot(collection(db, 'scores'), (snap) => {
+            unsubs.push(onSnapshot(collection(db, 'secureScores'), (snap) => {
                 scores = {}; snap.docs.forEach((d) => { scores[d.id] = d.data(); }); renderAll();
             }, extraError));
             unsubs.push(onSnapshot(collection(db, 'progress'), (snap) => {
@@ -424,11 +448,53 @@
             unsubs.push(onSnapshot(collection(db, 'presence'), (snap) => {
                 presence = {}; snap.docs.forEach((d) => { presence[d.id] = d.data({ serverTimestamps: 'estimate' }); }); renderAll();
             }, liveError));
+            unsubs.push(onSnapshot(doc(db, 'examBank', 'current'), s => {
+                $('bank-status').textContent = s.exists() ? 'Đã có ' + (s.data().questions?.length || 0) + ' câu riêng tư trên máy chủ.' : 'Chưa có đề riêng. Hãy nhập file JSON trước khi mở đề bảo vệ.';
+            }, err => { $('bank-status').textContent = 'Không đọc được ngân hàng đề (' + err.code + '). Hãy Publish Firestore Rules.'; }));
             unsubs.push(onSnapshot(doc(db, 'settings', 'site'), (s) => {
                 const d = s.data() || {};
-                site = { maintenance: d.maintenance === true, message: typeof d.message === 'string' ? d.message : '', leaderboard: d.leaderboard !== false };
+                site = { maintenance: d.maintenance === true, message: typeof d.message === 'string' ? d.message : '', leaderboard: d.leaderboard !== false, aiWatch: d.aiWatch === true, warningLimit: Number.isInteger(d.warningLimit) && d.warningLimit >= 1 && d.warningLimit <= 10 ? d.warningLimit : 3 };
+                if (document.activeElement !== $('warning-limit')) $('warning-limit').value = site.warningLimit;
+                $('ai-watch').checked = site.aiWatch;
                 renderSite(true);
             }, liveError));
+        });
+
+        $('bank-upload').addEventListener('click', async () => {
+            const file = $('bank-file').files[0], status = $('bank-status');
+            if (!file) { status.textContent = 'Chọn file JSON trước.'; return; }
+            if (file.size > 750000) { status.textContent = 'File quá lớn (tối đa 750 KB).'; return; }
+            $('bank-upload').disabled = true;
+            try {
+                const questions = JSON.parse(await file.text());
+                if (!Array.isArray(questions) || questions.length < 20 || questions.length > 200) throw Error('Cần 20–200 câu.');
+                const ids = new Set();
+                for (const q of questions) {
+                    if (!q || !/^b[68]-[a-zA-Z0-9-]{1,30}$/.test(q.id) || q.topic !== q.id.slice(0, 2) || ids.has(q.id) ||
+                        typeof q.text !== 'string' || q.text.length < 5 || q.text.length > 1000 ||
+                        !Array.isArray(q.options) || q.options.length !== 4 || q.options.some(x => typeof x !== 'string' || !x.length || x.length > 500) ||
+                        !Number.isInteger(q.answer) || q.answer < 0 || q.answer > 3) throw Error('Sai định dạng hoặc trùng mã ở câu ' + (q?.id || '?'));
+                    ids.add(q.id);
+                }
+                if (['b6', 'b8'].some(t => questions.filter(q => q.topic === t).length < 10)) throw Error('Mỗi bài cần ít nhất 10 câu.');
+                if (!confirm('Thay thế ngân hàng đề bảo vệ bằng ' + questions.length + ' câu? Đề đang làm sẽ giữ nguyên.')) return;
+                await setDoc(doc(db, 'examBank', 'current'), { questions, updatedAt: serverTimestamp() });
+                status.textContent = 'Đã nhập ' + questions.length + ' câu riêng tư. Không đăng file này lên GitHub.';
+                $('bank-file').value = '';
+            } catch (err) { status.textContent = 'Không nhập được: ' + (err.message || 'kiểm tra kết nối và Firestore Rules'); }
+            finally { $('bank-upload').disabled = false; }
+        });
+
+        $('exam-save').addEventListener('click', async () => {
+            const n = Number($('warning-limit').value);
+            const status = $('exam-save-status');
+            if (!Number.isInteger(n) || n < 1 || n > 10) { status.textContent = 'Chọn số nguyên từ 1 đến 10.'; return; }
+            $('exam-save').disabled = true; status.textContent = 'Đang lưu...';
+            try {
+                await setDoc(doc(db, 'settings', 'site'), { aiWatch: $('ai-watch').checked, warningLimit: n, updatedAt: serverTimestamp() }, { merge: true });
+                status.textContent = 'Đã lưu. Giới hạn mới áp dụng cho đề bắt đầu sau khi lưu.';
+            } catch (err) { status.textContent = 'Không lưu được (' + (err.code || 'lỗi mạng') + ').'; }
+            $('exam-save').disabled = false;
         });
 
         // ---------- Tiện ích ----------
@@ -991,11 +1057,11 @@
                 if (act === 'block' || act === 'unblock') {
                     await updateDoc(doc(db, 'users', id), { blocked: act === 'block' });
                 } else if (act === 'del-score') {
-                    await deleteDoc(doc(db, 'scores', id));
+                    await deleteDoc(doc(db, 'secureScores', id));
                 } else if (act === 'del-wrong') {
                     await deleteDoc(doc(db, 'progress', id));
                 } else if (act === 'del-user') {
-                    await Promise.all([deleteDoc(doc(db, 'scores', id)), deleteDoc(doc(db, 'progress', id)), deleteDoc(doc(db, 'presence', id))]);
+                    await Promise.all([deleteDoc(doc(db, 'secureScores', id)), deleteDoc(doc(db, 'progress', id)), deleteDoc(doc(db, 'presence', id))]);
                     await deleteDoc(doc(db, 'users', id));
                     closeDetail();
                 }

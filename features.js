@@ -189,7 +189,7 @@
         savedTopics[p.topic] = true;
 
         var score = round2(p.score);
-        var ranked = p.topic !== 'wrong';   // lượt ôn câu sai không tính vào bảng xếp hạng
+        var ranked = p.topic !== 'wrong';   // chỉ là thống kê luyện tập trên máy, KHÔNG tính vào bảng xếp hạng
         var isBest = false;
 
         state.history.unshift({ s: score, t: p.topic, n: p.total, at: Date.now() });
@@ -201,17 +201,8 @@
         saveLocal();
         refreshUI();
         pushCloud();
-        if (ranked && window.bioCloud && uid) {
-            window.bioCloud.saveScore(score).then(function (d) {
-                if (d && typeof d.best === 'number') {
-                    state.best = d.best; state.attempts = d.attempts || state.attempts;
-                    saveLocal(); refreshUI();
-                }
-            }).catch(function () { /* không lưu được lên bảng xếp hạng: kết quả vẫn còn trên máy */ });
-        }
-
         var left = wrongCount();
-        openModal(ranked ? 'Hoàn thành lượt kiểm tra' : 'Đã ôn xong câu sai',
+        openModal(ranked ? 'Hoàn thành lượt luyện tập' : 'Đã ôn xong câu sai',
             '<div style="text-align:center;padding:.5rem 0 1rem;">' +
                 '<div class="fx-muted">' + esc(TOPIC_NAMES[p.topic] || '') + ' · ' + p.total + ' câu</div>' +
                 '<div style="font-size:2.75rem;font-weight:800;color:#047857;line-height:1.1;margin-top:.25rem;">' + fmtScore(score) + '<span style="font-size:1.1rem;color:#5b7066;">/10</span></div>' +
@@ -222,7 +213,6 @@
             '</div>' +
             '<div style="display:grid;gap:.5rem;">' +
                 (left ? '<button type="button" class="fx-btn fx-btn-primary" data-fx="review"><i class="fa-solid fa-rotate"></i> Ôn ' + left + ' câu sai</button>' : '') +
-                (ranked && !rankOff() ? '<button type="button" class="fx-btn fx-btn-soft" data-fx="rank"><i class="fa-solid fa-trophy"></i> Xem bảng xếp hạng</button>' : '') +
                 (ranked ? '<button type="button" class="fx-btn fx-btn-soft" data-fx="retry"><i class="fa-solid fa-rotate-right"></i> Làm lại từ đầu</button>' : '') +
                 '<button type="button" class="fx-btn fx-btn-soft" data-fx="close">Xem lại bài vừa làm</button>' +
             '</div>');
@@ -281,7 +271,7 @@
                 '<div style="margin-top:1rem;"><button type="button" class="fx-btn fx-btn-primary" data-fx="close">Đã hiểu</button></div>');
             return;
         }
-        var note = '<p class="fx-muted">Xếp theo điểm cao nhất của một lượt Kiểm tra đã làm hết câu (cả 2 bài hoặc từng bài). Lượt ôn câu sai không được tính.</p>';
+        var note = '<p class="fx-muted">Chỉ xếp hạng điểm đề 20 câu được chấm trên máy chủ. Điểm luyện tập trên thiết bị không được tính.</p>';
         if (!window.bioCloud || !uid) {
             openModal('Bảng xếp hạng', note +
                 '<p style="margin-top:.9rem;font-size:.9rem;color:#0d2b22;">Bảng xếp hạng cần đăng nhập Google. ' +
@@ -292,7 +282,7 @@
         window.bioCloud.loadLeaderboard().then(function (list) {
             if (modal.hidden || modalTitle.textContent !== 'Bảng xếp hạng') return;
             if (!list.length) {
-                modalBody.innerHTML = note + '<p style="margin-top:.9rem;font-size:.9rem;color:#0d2b22;">Chưa có ai trên bảng. Hãy là người đầu tiên: làm hết một lượt Kiểm tra.</p>';
+                modalBody.innerHTML = note + '<p style="margin-top:.9rem;font-size:.9rem;color:#0d2b22;">Chưa có ai trên bảng. Hãy là người đầu tiên hoàn thành đề 20 câu bảo vệ.</p>';
                 return;
             }
             var medals = ['🥇', '🥈', '🥉'];
@@ -380,10 +370,6 @@
             if (cloud && cloud.progress && (cloud.progress.ts || 0) > state.ts) {
                 var n = normalize(cloud.progress);
                 state.wrong = n.wrong; state.history = n.history; state.ts = n.ts;
-            }
-            if (cloud && cloud.score && typeof cloud.score.best === 'number') {
-                state.best = state.best == null ? cloud.score.best : Math.max(state.best, cloud.score.best);
-                state.attempts = Math.max(state.attempts, cloud.score.attempts || 0);
             }
             var ts = state.ts;
             saveLocal();
