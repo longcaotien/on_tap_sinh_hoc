@@ -76,6 +76,9 @@
         @media (min-width: 640px) { #detail { align-items: center; padding: 1.25rem; } #detail-card { border-radius: 1.25rem; } }
         #screen { position: fixed; inset: 0; z-index: 60; background: #f3f8f4; display: flex; flex-direction: column; }
         #screen-body { flex: 1; overflow-y: auto; }
+        #live-viewer { position:fixed; inset:0; z-index:70; display:flex; flex-direction:column; background:#071522; color:#fff; }
+        #live-video { flex:1; width:100%; min-height:0; object-fit:contain; background:#020617; }
+
         .sq { background: #fff; border: 1px solid #d5e5da; border-radius: 1rem; padding: 1rem; scroll-margin-top: 1rem; }
         .sq.cur { border-color: #f2b640; box-shadow: 0 0 0 3px rgba(242,182,64,.45); }
         .sq svg { max-width: 100%; height: auto; }
@@ -242,7 +245,13 @@
             <section id="tab-live" hidden class="card overflow-hidden">
                 <div class="p-4">
                     <h2 class="font-extrabold">Người dùng đang làm gì</h2>
-                    <p class="mt-1 text-sm text-slate-600">Tự cập nhật. Bấm <b>Xem màn hình</b> để thấy từng câu người đó đang làm và đáp án đã chọn. Dữ liệu chậm hơn thực tế vài giây. Ai ngừng báo quá 2,5 phút được coi là đã rời đi.</p>
+                    <p class="mt-1 text-sm text-slate-600">Tự cập nhật. Bấm <b>Xem bài mô phỏng</b> để thấy từng câu người đó đang làm và đáp án đã chọn. Dữ liệu chậm hơn thực tế vài giây. Ai ngừng báo quá 2,5 phút được coi là đã rời đi.</p>
+                </div>
+                <div class="border-t border-[#e6f1ea] p-4 bg-indigo-50/50">
+                    <h3 class="font-extrabold text-indigo-950">Chia sẻ màn hình trực tiếp (có xin phép)</h3>
+                    <p class="text-xs text-slate-600 mt-1">Hình ảnh truyền ngang hàng qua WebRTC, không ghi lại. Bấm “Xem trực tiếp” để kết nối; quản lý tự đánh dấu nghi vấn khi thấy hành vi bất thường. Không có phần mềm tự nhận diện Gemini. Đóng khung xem có thể ngắt giám sát và khiến người học bị thoát; một số mạng có thể không kết nối được.</p>
+                    <p id="share-stream-error" role="alert" class="text-sm text-rose-700 mt-2"></p>
+                    <div id="share-rows" class="mt-2"></div>
                 </div>
                 <div id="live-rows"></div>
                 <p id="live-empty" hidden class="p-8 text-center text-sm text-slate-500">Hiện không có ai đang mở trang.</p>
@@ -280,6 +289,18 @@
                 <p id="missed-empty" hidden class="p-8 text-center text-sm text-slate-500">Chưa có dữ liệu câu sai.</p>
             </section>
         </main>
+    </div>
+
+    <!-- Xem màn hình THẬT theo quyền chia sẻ của người học, không ghi hình -->
+    <div id="live-viewer" hidden role="dialog" aria-modal="true" aria-label="Xem màn hình trực tiếp">
+        <div class="flex flex-wrap gap-3 items-center p-3 border-b border-white/20">
+            <strong id="live-viewer-name" class="min-w-0 flex-1 truncate"></strong>
+            <span id="live-viewer-status" class="text-sm text-indigo-200" role="status">Đang kết nối...</span>
+            <button id="live-review" type="button" class="btn bg-amber-400 text-slate-900">Đánh dấu nghi vấn</button>
+            <button id="live-viewer-close" type="button" class="btn bg-white/15 text-white">Đóng</button>
+        </div>
+        <video id="live-video" autoplay playsinline muted aria-label="Hình ảnh màn hình do người học chia sẻ"></video>
+        <p class="px-4 py-2 text-xs text-indigo-200">Hình ảnh trực tiếp, không ghi video. Chỉ người học có thể chọn Toàn bộ màn hình; trang web không thể biết chắc có Gemini trên thiết bị khác.</p>
     </div>
 
     <!-- Xem màn hình người học đang làm -->
@@ -344,6 +365,7 @@
         let scores = {};     // uid -> { best, attempts, lastScore, ... }
         let progress = {};   // uid -> { wrong: [], history: [] }
         let presence = {};   // uid -> { mode, topic, answered, total, score, ts }
+        let shares = {};     // uid -> tín hiệu chia sẻ WebRTC, không chứa hình ảnh
         let site = { maintenance: false, message: '', leaderboard: true, aiWatch: false, warningLimit: 3 };
         let filter = 'all';
         let tab = 'users';
@@ -392,7 +414,7 @@
 
         $('logout-btn').addEventListener('click', () => signOut(auth));
 
-        function stopListening() { unsubs.forEach((u) => u()); unsubs = []; }
+        function stopListening() { unsubs.forEach((u) => u()); unsubs = []; closeLiveViewer(); }
 
         onAuthStateChanged(auth, (user) => {
             stopListening();
@@ -448,6 +470,15 @@
             unsubs.push(onSnapshot(collection(db, 'presence'), (snap) => {
                 presence = {}; snap.docs.forEach((d) => { presence[d.id] = d.data({ serverTimestamps: 'estimate' }); }); renderAll();
             }, liveError));
+            unsubs.push(onSnapshot(collection(db, 'screenShares'), (snap) => {
+                shares = {}; snap.docs.forEach(d => { shares[d.id] = d.data({ serverTimestamps: 'estimate' }); });
+                $('share-stream-error').textContent = '';
+                renderShares();
+            }, err => {
+                $('share-stream-error').textContent = err.code === 'permission-denied'
+                    ? 'Cần Publish lại firestore.rules mới để xem chia sẻ màn hình trực tiếp.'
+                    : 'Không tải được danh sách chia sẻ (' + (err.code || 'mất mạng') + ').';
+            }));
             unsubs.push(onSnapshot(doc(db, 'examBank', 'current'), s => {
                 $('bank-status').textContent = s.exists() ? 'Đã có ' + (s.data().questions?.length || 0) + ' câu riêng tư trên máy chủ.' : 'Chưa có đề riêng. Hãy nhập file JSON trước khi mở đề bảo vệ.';
             }, err => { $('bank-status').textContent = 'Không đọc được ngân hàng đề (' + err.code + '). Hãy Publish Firestore Rules.'; }));
@@ -768,7 +799,7 @@
                     <div class="shrink-0 text-right">
                         <div class="text-xs text-slate-500">${ago(ms(p.ts))}</div>
                         <div class="flex flex-col sm:flex-row gap-2 mt-1 justify-end">
-                            <button type="button" data-act="screen" data-id="${esc(id)}" class="btn btn-primary"><i class="fa-solid fa-display mr-1.5"></i>Xem màn hình</button>
+                            <button type="button" data-act="screen" data-id="${esc(id)}" class="btn btn-primary"><i class="fa-solid fa-list-check mr-1.5"></i>Xem bài mô phỏng</button>
                             ${users.some((x) => x.id === id) ? `<button type="button" data-act="detail" data-id="${esc(id)}" class="btn btn-soft">Chi tiết</button>` : ''}
                         </div>
                     </div>
@@ -789,8 +820,104 @@
         // Tự làm mới để ai ngừng báo về thì rời khỏi danh sách
         setInterval(() => { if (!$('view-admin').hidden) { renderLive(); if (tab === 'users') renderUsers(); } }, 20000);
 
+        // ---------- Xem màn hình trực tiếp WebRTC, không ghi hình ----------
+        let livePeer = null, liveUnsub = null, liveId = null, liveSessionId = null;
+        function closeLiveViewer() {
+            if (liveUnsub) { liveUnsub(); liveUnsub = null; }
+            if (livePeer) { livePeer.close(); livePeer = null; }
+            $('live-video').srcObject = null;
+            $('live-viewer').hidden = true;
+            liveId = null; liveSessionId = null;
+        }
+        $('live-viewer-close').addEventListener('click', closeLiveViewer);
+        $('live-review').addEventListener('click', async () => {
+            if (!liveId || !liveSessionId) return;
+            const flag = shares[liveId]?.reviewSessionId === liveSessionId && shares[liveId]?.reviewFlag === true;
+            try {
+                await updateDoc(doc(db, 'screenShares', liveId), { reviewFlag: !flag, reviewSessionId: liveSessionId });
+                $('live-viewer-status').textContent = flag ? 'Đã bỏ đánh dấu nghi vấn.' : 'Đã đánh dấu để quản lý kiểm tra lại (không phải kết luận gian lận).';
+                $('live-review').textContent = flag ? 'Đánh dấu nghi vấn' : 'Bỏ đánh dấu nghi vấn';
+            } catch (err) { $('live-viewer-status').textContent = 'Không lưu được đánh dấu (' + (err.code || 'lỗi mạng') + ').'; }
+        });
+        async function waitForIce(pc) {
+            if (pc.iceGatheringState === 'complete') return;
+            await new Promise((resolve, reject) => {
+                const timer = setTimeout(() => { cleanup(); reject(new Error('Hết thời gian chờ kết nối mạng.')); }, 12000);
+                const check = () => { if (pc.iceGatheringState === 'complete') { cleanup(); resolve(); } };
+                const cleanup = () => { clearTimeout(timer); pc.removeEventListener('icegatheringstatechange', check); };
+                pc.addEventListener('icegatheringstatechange', check); check();
+            });
+        }
+        function renderShares() {
+            const now = Date.now();
+            const ids = Object.keys(shares).filter(id => shares[id].status === 'live' && now - ms(shares[id].ts) < 100000);
+            $('share-rows').innerHTML = ids.length ? ids.map(id => {
+                const d = shares[id], flagged = d.reviewFlag && d.reviewSessionId === d.sessionId;
+                return `<div class="flex flex-wrap items-center gap-2 py-2 border-b border-indigo-100">
+                    <span class="font-semibold flex-1 min-w-[8rem]">${esc(d.name || 'Người học')} <small class="text-rose-700">Cảnh báo tự báo: ${Math.max(0, Math.min(10, Number(d.warnings) || 0))}${d.lastReason && d.lastReason !== 'start' ? ' · ' + esc(d.lastReason) : ''}</small> ${flagged ? '<span class="text-amber-800">⚑ Nghi vấn</span>' : ''}</span>
+                    <span class="text-xs text-slate-600">${d.surface === 'monitor' ? 'Trình duyệt báo toàn màn hình' : 'Không xác nhận loại màn hình'} · ${ago(ms(d.ts))}</span>
+                    <button type="button" data-share-id="${esc(id)}" class="btn btn-primary">Xem trực tiếp</button>
+                </div>`;
+            }).join('') : '<p class="text-sm text-slate-600 py-2">Chưa có người học đồng ý chia sẻ màn hình.</p>';
+            if (liveId && (!shares[liveId] || shares[liveId].status !== 'live' || shares[liveId].sessionId !== liveSessionId)) {
+                $('live-viewer-status').textContent = 'Người học đã dừng chia sẻ hoặc rời bài.';
+                if (livePeer) { livePeer.close(); livePeer = null; }
+                $('live-video').srcObject = null;
+            }
+        }
+        $('share-rows').addEventListener('click', e => {
+            const btn = e.target.closest('button[data-share-id]');
+            if (btn) openLiveViewer(btn.dataset.shareId);
+        });
+        async function openLiveViewer(id) {
+            const share = shares[id];
+            if (!share || share.status !== 'live' || !share.offer || !window.RTCPeerConnection) return;
+            closeLiveViewer();
+            liveId = id; liveSessionId = share.sessionId;
+            const sessionId = share.sessionId;
+            $('live-viewer-name').textContent = (share.name || 'Người học') + ' · chia sẻ tự nguyện';
+            $('live-viewer-status').textContent = 'Đang kết nối...';
+            $('live-review').textContent = share.reviewFlag && share.reviewSessionId === sessionId ? 'Bỏ đánh dấu nghi vấn' : 'Đánh dấu nghi vấn';
+            $('live-viewer').hidden = false;
+            $('live-viewer-close').focus();
+            try {
+                const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+                livePeer = pc;
+                pc.addEventListener('track', ev => {
+                    if (livePeer !== pc) return;
+                    $('live-video').srcObject = ev.streams[0] || new MediaStream([ev.track]);
+                    $('live-video').play().catch(() => { $('live-viewer-status').textContent = 'Hãy bấm vào video để phát.'; });
+                });
+                pc.addEventListener('connectionstatechange', () => {
+                    if (livePeer !== pc) return;
+                    if (pc.connectionState === 'connected') $('live-viewer-status').textContent = 'Đang xem · không ghi hình';
+                    if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') $('live-viewer-status').textContent = 'Mất kết nối; thử đóng và mở lại.';
+                });
+                liveUnsub = onSnapshot(doc(db, 'screenShares', id), snap => {
+                    if (livePeer !== pc) return;
+                    const data = snap.data();
+                    if (!data || data.status !== 'live' || data.sessionId !== sessionId) {
+                        $('live-viewer-status').textContent = 'Người học đã dừng chia sẻ.';
+                        pc.close(); livePeer = null; $('live-video').srcObject = null;
+                    }
+                });
+                await pc.setRemoteDescription({ type: share.offer.type, sdp: share.offer.sdp });
+                await pc.setLocalDescription(await pc.createAnswer());
+                await waitForIce(pc);
+                if (livePeer !== pc) return;
+                if (pc.localDescription.sdp.length > 30000) throw Error('Dữ liệu kết nối quá lớn.');
+                await updateDoc(doc(db, 'screenShares', id), {
+                    answer: { type: pc.localDescription.type, sdp: pc.localDescription.sdp, sessionId }, answeredAt: serverTimestamp()
+                });
+                if (pc.connectionState !== 'connected') $('live-viewer-status').textContent = 'Đã gửi yêu cầu xem · chờ người học kết nối...';
+            } catch (err) {
+                if (liveId === id) $('live-viewer-status').textContent = 'Không kết nối được (' + (err.code || err.message || 'mạng chặn WebRTC') + ').';
+            }
+        }
+
         function renderAll() {
             renderLive();
+            renderShares();
             if (screenId) renderScreen();
             renderStats();
             renderUsers();
@@ -981,7 +1108,7 @@
         }
         $('detail-close').addEventListener('click', closeDetail);
         $('detail').addEventListener('click', (e) => { if (e.target === $('detail')) closeDetail(); });
-        document.addEventListener('keydown', (e) => { if (e.key !== 'Escape') return; if (!$('screen').hidden) closeScreen(); else closeDetail(); });
+        document.addEventListener('keydown', (e) => { if (e.key !== 'Escape') return; if (!$('live-viewer').hidden) closeLiveViewer(); else if (!$('screen').hidden) closeScreen(); else closeDetail(); });
 
         function renderDetail() {
             const u = users.find((x) => x.id === detailId);
