@@ -241,6 +241,11 @@
         #secure-view:fullscreen #secure-question { min-height:0; flex:1; overflow-y:auto; overscroll-behavior:contain; }
         #secure-view:fullscreen #secure-warning { margin:0; }
         #secure-view:fullscreen #secure-message { margin:0; }
+        @media (max-width: 640px) {
+            #secure-view { padding-bottom: env(safe-area-inset-bottom, 1rem); }
+            #secure-question { overflow-wrap: anywhere; }
+            #secure-question button { touch-action: manipulation; }
+        }
         #exam-progress-track { height:.4rem; border-radius:999px; background:rgba(255,255,255,.25); overflow:hidden; margin-top:.9rem; }
         #exam-progress-fill { display:block; width:0; height:100%; border-radius:inherit; background:linear-gradient(90deg,#34d399,#a5b4fc); transition:width .35s ease; }
         #secure-question button:not(:disabled) { transition:background-color .16s ease, border-color .16s ease, transform .16s ease, box-shadow .16s ease; }
@@ -914,7 +919,7 @@
             <div class="rounded-3xl bg-gradient-to-br from-indigo-950 via-indigo-800 to-violet-800 text-white p-5 sm:p-6 shadow-lg">
                 <div class="text-indigo-200 uppercase tracking-widest text-xs font-bold">Đề luyện miễn phí · bài 6 & bài 8</div>
                 <h2 id="secure-title" class="text-2xl sm:text-3xl font-extrabold mt-2">Kiểm tra 20 câu</h2>
-                <p class="mt-2 text-indigo-100 text-sm">10 câu mỗi bài · 25 phút · điểm và cảnh báo lưu trên thiết bị. Cần toàn màn hình và tự nguyện chia sẻ màn hình để vào đề. Admin xem trực tiếp nếu kết nối được, không ghi hình/không tự phát hiện AI.</p>
+                <p class="mt-2 text-indigo-100 text-sm">10 câu mỗi bài · 25 phút · điểm và cảnh báo lưu trên thiết bị. Máy tính: cần toàn màn hình và tự cấp quyền chia sẻ để admin xem trực tiếp. Điện thoại/máy tính bảng: chỉ luyện tập, không chia sẻ, không giám sát; điểm không xác thực.</p>
                 <div id="exam-progress-track" role="progressbar" aria-label="Tiến độ bài kiểm tra" aria-valuemin="0" aria-valuemax="20" aria-valuenow="0"><i id="exam-progress-fill"></i></div>
                 <div class="flex flex-wrap justify-between items-center gap-3 mt-4">
                     <span id="secure-progress" class="font-bold px-3 py-1.5 bg-white/15 rounded-lg">Đang tải đề...</span>
@@ -922,6 +927,15 @@
                     <button id="secure-leave" type="button" class="px-4 py-2 rounded-xl border border-white/40 hover:bg-white/15 font-bold text-sm">Thoát đề</button>
                 </div>
             </div>
+            <div id="exam-mobile-gate" class="exam-gate hidden" role="region" aria-label="Luyện tập trên điện thoại">
+                <h3 class="font-extrabold text-lg">Luyện tập trên điện thoại · không giám sát</h3>
+                <p class="text-sm mt-1">Trình duyệt di động thường không hỗ trợ chia sẻ toàn bộ màn hình. Chế độ này không yêu cầu chia sẻ hay toàn màn hình. Admin <strong>không xem trực tiếp</strong>, không xác minh điểm và không phát hiện Gemini. Hệ thống chỉ ghi cảnh báo rời trang trên thiết bị này. Bạn có muốn bắt đầu lượt luyện 20 câu/25 phút?</p>
+                <div class="flex flex-wrap gap-2 mt-3">
+                    <button id="exam-mobile-start" type="button" class="min-h-11 px-5 rounded-xl bg-indigo-700 text-white font-bold hover:bg-indigo-800">Bắt đầu luyện tập không giám sát</button>
+                    <button id="exam-mobile-cancel" type="button" class="min-h-11 px-5 rounded-xl border border-slate-300 font-bold">Quay lại</button>
+                </div>
+            </div>
+            <div id="exam-mobile-label" class="hidden rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-950 text-sm font-bold" role="status">Chế độ luyện tập trên điện thoại · KHÔNG chia sẻ màn hình · KHÔNG giám sát trực tiếp · điểm không xác thực.</div>
             <div id="exam-share-gate" class="exam-gate hidden" role="region" aria-label="Cấp quyền chia sẻ màn hình">
                 <h3 class="font-extrabold text-lg">Chia sẻ màn hình để tiếp tục</h3>
                 <p class="text-sm mt-1">Bạn chủ động chọn <strong>Toàn bộ màn hình</strong> trong hộp thoại trình duyệt. Hình ảnh truyền trực tiếp cho quản lý qua kết nối ngang hàng, không lưu video. Nếu từ chối, chọn cửa sổ/tab hoặc dừng chia sẻ, lượt này sẽ thoát. Không thể tự động nhận diện Gemini.</p>

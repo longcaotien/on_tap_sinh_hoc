@@ -54,3 +54,12 @@ test('grades ABCD, TF, short answers locally and rejects malformed choices', () 
   assert.deepEqual(core.grade(bank, s), { correct: 0, score: 0 });
   assert.equal(core.validChoice(bank.find(q => q.type === 'tf'), [true, false]), false);
 });
+
+test('mobile practice is limited to phone/tablet device identification, not merely a missing share API', () => {
+  assert.equal(core.isMobileDevice('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)'), true);
+  assert.equal(core.isMobileDevice('Mozilla/5.0 (Linux; Android 14; Pixel 8) Mobile'), true);
+  assert.equal(core.isMobileDevice('Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X)'), true);
+  assert.equal(core.isMobileDevice('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15)', 5), true);
+  assert.equal(core.isMobileDevice('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15)', 0), false);
+  assert.equal(core.isMobileDevice('Mozilla/5.0 (Windows NT 10.0; Win64; x64)'), false);
+});
