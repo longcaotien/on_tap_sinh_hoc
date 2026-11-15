@@ -96,7 +96,7 @@
                 radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.12) 0px, transparent 50%),
                 radial-gradient(at 100% 15%, rgba(6, 182, 212, 0.12) 0px, transparent 50%),
                 radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
-            background-attachment: fixed;
+            background-attachment: scroll;
         }
 
         .glass-card {
@@ -447,6 +447,10 @@
 
         <!-- ==================== 1. GIAO DIỆN TRANG CHỦ (HOME VIEW) ==================== -->
         <section id="view-home" class="space-y-10 fade-in">
+            <button onclick="window.secureExam ? window.secureExam.start() : alert('Đang tải chức năng thi, thử lại sau ít giây.')" class="w-full rounded-2xl bg-gradient-to-r from-indigo-800 via-violet-700 to-purple-700 p-5 sm:p-6 text-white shadow-xl hover:shadow-2xl hover:-translate-y-0.5 active:translate-y-0 transition-all text-left flex items-center justify-between gap-4 focus-visible:outline-4 focus-visible:outline-amber-400">
+                <span><span class="block uppercase tracking-widest text-xs font-bold text-indigo-200">Mới · Đề bảo vệ hai bài</span><strong class="block text-xl sm:text-2xl mt-1">Kiểm tra 20 câu ngẫu nhiên</strong><span class="block text-sm text-indigo-100 mt-1">10 câu Bài 6 + 10 câu Bài 8 · theo dõi chuyển tab</span></span>
+                <i class="fa-solid fa-arrow-right text-2xl" aria-hidden="true"></i>
+            </button>
             <!-- Hero Banner -->
             <div class="relative rounded-3xl overflow-hidden bg-gradient-to-br from-bio-950 via-bio-800 to-teal-900 text-white shadow-2xl border border-bio-700/50">
                 <!-- Họa tiết sinh học nền -->
@@ -491,7 +495,7 @@
                                     <i class="fa-solid fa-bolt-lightning text-lg"></i>
                                 </div>
                                 <div class="text-left">
-                                    <div>Chế Độ Kiểm Tra Phản Xạ</div>
+                                    <div>Luyện Tập Phản Xạ</div>
                                     <div class="text-xs font-medium text-bio-100">Có xáo trộn ABCD • Bấm là hiện liền</div>
                                 </div>
                             </button>
@@ -758,6 +762,10 @@
         <!-- ==================== 2. GIAO DIỆN HỌC & KIỂM TRA (QUESTIONS VIEW) ==================== -->
         <section id="view-questions" class="hidden space-y-6 fade-in">
             
+            <button id="exam-start" onclick="window.secureExam ? window.secureExam.start() : alert('Đang tải chức năng thi, thử lại sau ít giây.')" class="w-full rounded-2xl p-5 sm:p-6 text-left bg-gradient-to-r from-indigo-800 via-violet-700 to-purple-700 text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all focus-visible:outline-4 focus-visible:outline-amber-400 flex items-center justify-between gap-4">
+                <span><span class="block text-xs uppercase tracking-widest text-indigo-200 font-bold">Đề kiểm tra bảo vệ</span><strong class="block text-lg sm:text-xl mt-1">Bắt đầu đề 20 câu ngẫu nhiên</strong><span class="block text-sm text-indigo-100 mt-1">Lấy từ cả Bài 6 và Bài 8 · có cảnh báo rời trang</span></span>
+                <i class="fa-solid fa-arrow-right text-xl" aria-hidden="true"></i>
+            </button>
             <!-- THANH ĐIỀU KHIỂN (đóng/mở được) -->
             <div id="toolbar" class="toolbar glass-card shadow-md" data-open="true" data-practice="false">
                 <div class="toolbar-head">
@@ -887,6 +895,21 @@
 
         </section>
 
+        <section id="secure-view" class="hidden max-w-3xl mx-auto space-y-5 fade-in" aria-labelledby="secure-title">
+            <div class="rounded-3xl bg-gradient-to-br from-indigo-950 via-indigo-800 to-violet-800 text-white p-6 sm:p-8 shadow-xl">
+                <div class="text-indigo-200 uppercase tracking-widest text-xs font-bold">Đề thi bảo vệ · bài 6 & bài 8</div>
+                <h2 id="secure-title" class="text-2xl sm:text-3xl font-extrabold mt-2">Kiểm tra 20 câu</h2>
+                <p class="mt-2 text-indigo-100 text-sm">10 câu mỗi bài · 25 phút · chỉ hiển thị từng câu · đáp án và điểm do máy chủ giữ.</p>
+                <div class="flex flex-wrap justify-between items-center gap-3 mt-5">
+                    <span id="secure-progress" class="font-bold px-3 py-1.5 bg-white/15 rounded-lg">Đang tải đề...</span>
+                    <span id="secure-timer" class="font-bold tabular-nums" role="timer"></span>
+                    <button id="secure-leave" type="button" class="px-4 py-2 rounded-xl border border-white/40 hover:bg-white/15 font-bold text-sm">Thoát đề</button>
+                </div>
+            </div>
+            <p id="secure-warning" class="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950 text-sm font-semibold" role="status"></p>
+            <div id="secure-question" class="glass-card rounded-2xl p-5 sm:p-7 shadow-lg border border-indigo-100"></div>
+            <p id="secure-message" class="text-sm text-rose-700 font-semibold" role="alert"></p>
+        </section>
     </main>
 
     <!-- ==================== FOOTER ==================== -->
@@ -918,7 +941,6 @@
         let currentTopic = 'all';     // 'all' | 'b6' | 'b8'
         let currentPartFilter = 'all';// 'all' | 'part1' | 'part2' | 'part3'
         let isShuffled = false;
-
         // Bản sao dữ liệu đang hiển thị (để hỗ trợ xáo trộn và khôi phục)
         let activeMCQData = [];
         let activeTFData = [];
@@ -972,6 +994,7 @@
 
         // Đang làm dở một lượt kiểm tra? (dùng để không tự tải lại trang giữa chừng)
         window.bioBusy = function () {
+            if (!document.getElementById('secure-view').classList.contains('hidden')) return !!(window.secureExam && window.secureExam.active());
             return currentMode === 'practice' && lastProgress.answered > 0 && lastProgress.answered < lastProgress.total;
         };
 
@@ -1153,6 +1176,7 @@
         }
 
         function switchMainView(viewName) {
+            if (window.secureExam && window.secureExam.active()) { window.secureExam.notice(); return; }
             currentMode = viewName;
             const homeSection = document.getElementById('view-home');
             const questionsSection = document.getElementById('view-questions');
@@ -1193,7 +1217,7 @@
             } else {
                 modeIcon.className = "w-11 h-11 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-sm shrink-0";
                 modeIcon.innerHTML = `<i class="fa-solid fa-bolt-lightning"></i>`;
-                modeTitle.textContent = "Chế độ kiểm tra phản xạ";
+                modeTitle.textContent = "Luyện tập phản xạ";
                 modePill.className = "inline-block font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300";
                 modePill.textContent = "Chọn một lần, khoá ngay";
                 modeDesc.textContent = "Bấm chọn phương án A, B, C, D hoặc Đúng/Sai — hệ thống chấm và mở giải thích ngay, không được chọn lại. Câu bấm \"Hiện đáp án\" sẽ không được tính điểm.";
@@ -1715,7 +1739,7 @@
             if (!el) return;
             const t = { all: 'Cả 2 bài', b6: 'Bài 6', b8: 'Bài 8', wrong: 'Câu sai' }[currentTopic] || 'Cả 2 bài';
             const p = { all: 'đủ 3 phần', part1: 'Phần I', part2: 'Phần II', part3: 'Phần III' }[currentPartFilter] || 'đủ 3 phần';
-            el.textContent = t + ', ' + p + (isShuffled ? ', đã xáo trộn' : '');
+            el.textContent = (t + ', ' + p) + (isShuffled ? ', đã xáo trộn' : '');
         }
         function applyModeChrome(viewName) {
             const practice = viewName === 'practice';
@@ -1742,6 +1766,7 @@
         });
     </script>
     <script src="features.js?v=__BUILD__"></script>
+    <script type="module" src="secure-exam.js?v=__BUILD__"></script>
 <button id="fab-top" class="fab" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Lên đầu trang"><i class="fa-solid fa-arrow-up"></i></button>
 </body>
 </html>
