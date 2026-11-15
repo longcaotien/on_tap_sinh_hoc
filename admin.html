@@ -175,8 +175,8 @@
 
             <section class="card p-4 sm:p-5" aria-label="Ngân hàng đề bảo vệ">
                 <h2 class="font-extrabold text-lg">Ngân hàng đề bảo vệ (riêng tư)</h2>
-                <p class="text-sm text-slate-600 mt-1">Đề này khác bộ 50 câu ôn tập công khai. Chọn file JSON riêng trên thiết bị của bạn (ít nhất 10 câu mỗi bài). Đáp án chỉ được lưu trong Firestore có quy tắc riêng, <strong>không được commit lên GitHub</strong>.</p>
-                <p class="text-xs text-slate-500 mt-2">Định dạng mỗi câu: {"id":"b6-01","topic":"b6","text":"Câu hỏi?","options":["A","B","C","D"],"answer":0}. answer là chỉ số 0–3 của đáp án đúng.</p>
+                <p class="text-sm text-slate-600 mt-1">Chọn file JSON trên thiết bị (ít nhất 10 câu mỗi bài). Có thể dùng file xuất từ 50 câu ôn tập để thử, nhưng <strong>đáp án của các câu đó đã công khai trong questions.js</strong>; muốn đề bí mật thật sự, hãy biên soạn câu mới và không commit file lên GitHub.</p>
+                <p class="text-xs text-slate-500 mt-2">Mỗi câu có id, topic, type (mcq / tf / sa), text. ABCD: options gồm 4 đáp án, answer là chỉ số 0–3. Đúng/Sai: statements gồm 4 ý, answer gồm 4 giá trị true/false. Trả lời ngắn: items, maxChoices và answer là số nguyên. File mẫu: ngan-hang-de-50-cau.json (tạo bằng node scripts/export-legacy-bank.cjs).</p>
                 <div class="flex flex-wrap gap-3 items-center mt-4">
                     <input id="bank-file" type="file" accept=".json,application/json" aria-label="Chọn file JSON bộ đề" class="text-sm max-w-full">
                     <button id="bank-upload" type="button" class="btn btn-primary">Nhập ngân hàng đề</button>
@@ -470,10 +470,19 @@
                 if (!Array.isArray(questions) || questions.length < 20 || questions.length > 200) throw Error('Cần 20–200 câu.');
                 const ids = new Set();
                 for (const q of questions) {
-                    if (!q || !/^b[68]-[a-zA-Z0-9-]{1,30}$/.test(q.id) || q.topic !== q.id.slice(0, 2) || ids.has(q.id) ||
-                        typeof q.text !== 'string' || q.text.length < 5 || q.text.length > 1000 ||
-                        !Array.isArray(q.options) || q.options.length !== 4 || q.options.some(x => typeof x !== 'string' || !x.length || x.length > 500) ||
-                        !Number.isInteger(q.answer) || q.answer < 0 || q.answer > 3) throw Error('Sai định dạng hoặc trùng mã ở câu ' + (q?.id || '?'));
+                    const type = q?.type || 'mcq';
+                    if (!q || !/^b[68][-_][a-zA-Z0-9_-]{1,40}$/.test(q.id) || q.topic !== q.id.slice(0, 2) || ids.has(q.id) ||
+                        typeof q.text !== 'string' || q.text.length < 5 || q.text.length > 1200 ||
+                        !['mcq', 'tf', 'sa'].includes(type) ||
+                        (q.diagram !== undefined && !['seedExperiment', 'potatoGraph', 'digestiveSystem'].includes(q.diagram))) throw Error('Sai định dạng hoặc trùng mã ở câu ' + (q?.id || '?'));
+                    if (type === 'mcq' && (!Array.isArray(q.options) || q.options.length !== 4 || q.options.some(x => typeof x !== 'string' || !x.length || x.length > 500) ||
+                        !Number.isInteger(q.answer) || q.answer < 0 || q.answer > 3)) throw Error('Sai đáp án ABCD ở ' + q.id);
+                    if (type === 'tf' && (!Array.isArray(q.statements) || q.statements.length !== 4 || q.statements.some(x => typeof x !== 'string' || !x.length || x.length > 1200) ||
+                        !Array.isArray(q.answer) || q.answer.length !== 4 || q.answer.some(x => typeof x !== 'boolean'))) throw Error('Sai Đúng/Sai ở ' + q.id);
+                    if (type === 'sa' && (!Array.isArray(q.items) || q.items.length < 2 || q.items.length > 10 ||
+                        q.items.some(x => typeof x !== 'string' || !x.length || x.length > 500) ||
+                        !Number.isInteger(q.maxChoices) || q.maxChoices < 1 || q.maxChoices > 10 ||
+                        !Number.isInteger(q.answer) || q.answer < 1 || q.answer > q.maxChoices)) throw Error('Sai trả lời ngắn ở ' + q.id);
                     ids.add(q.id);
                 }
                 if (['b6', 'b8'].some(t => questions.filter(q => q.topic === t).length < 10)) throw Error('Mỗi bài cần ít nhất 10 câu.');

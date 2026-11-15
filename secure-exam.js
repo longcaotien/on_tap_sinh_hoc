@@ -56,18 +56,64 @@ function render() {
   }
   $('secure-leave').textContent = 'Thoát đề';
   const q = session.question;
-  if (!q || !Array.isArray(q.options)) { message('Không tải được câu hỏi. Hãy tải lại trang.'); return; }
+  if (!q || !['mcq', 'tf', 'sa'].includes(q.type)) { message('Không tải được câu hỏi. Hãy tải lại trang.'); return; }
   const tag = document.createElement('p'); tag.className = 'text-xs font-bold uppercase tracking-wider text-indigo-700';
-  tag.textContent = (q.topic === 'b6' ? 'Bài 6 · Hô hấp thực vật' : 'Bài 8 · Dinh dưỡng và tiêu hóa');
+  tag.textContent = `${q.topic === 'b6' ? 'Bài 6 · Hô hấp thực vật' : 'Bài 8 · Dinh dưỡng và tiêu hóa'} · ${ {mcq: 'ABCD', tf: 'Đúng / Sai', sa: 'Trả lời ngắn'}[q.type] }`;
   const h = document.createElement('h3'); h.className = 'text-lg sm:text-xl font-extrabold text-slate-900 mt-3 leading-relaxed'; h.textContent = q.text;
+  box.append(tag, h);
+  // Sơ đồ là tài nguyên tin cậy sẵn có trong questions.js, không dùng HTML lấy từ JSON quản lý.
+  const diagrams = { seedExperiment: window.getSeedExperimentSVG, potatoGraph: window.getPotatoGraphSVG, digestiveSystem: window.getDigestiveSystemSVG };
+  if (q.diagram && typeof diagrams[q.diagram] === 'function') {
+    const figure = document.createElement('div');
+    figure.className = 'my-4 max-w-xl mx-auto';
+    figure.innerHTML = diagrams[q.diagram]();
+    box.append(figure);
+  }
   const list = document.createElement('div'); list.className = 'grid gap-3 mt-6';
-  q.options.forEach((text, i) => {
-    const button = document.createElement('button'); button.type = 'button';
-    button.className = 'w-full min-h-14 p-4 text-left rounded-xl border-2 border-slate-200 bg-white hover:bg-indigo-50 hover:border-indigo-500 focus-visible:outline-4 focus-visible:outline-indigo-300 transition-colors font-semibold text-slate-800';
-    button.textContent = `${'ABCD'[i]}. ${text}`;
-    button.addEventListener('click', () => choose(i)); list.append(button);
-  });
-  box.append(tag, h, list);
+  if (q.type === 'mcq') {
+    q.options.forEach((text, i) => {
+      const button = document.createElement('button'); button.type = 'button';
+      button.className = 'w-full min-h-14 p-4 text-left rounded-xl border-2 border-slate-200 bg-white hover:bg-indigo-50 hover:border-indigo-500 focus-visible:outline-4 focus-visible:outline-indigo-300 transition-colors font-semibold text-slate-800';
+      button.textContent = `${'ABCD'[i]}. ${text}`;
+      button.addEventListener('click', () => choose(i)); list.append(button);
+    });
+  } else if (q.type === 'tf') {
+    q.statements.forEach((text, i) => {
+      const row = document.createElement('fieldset'); row.className = 'border border-slate-200 bg-white rounded-xl p-4';
+      const title = document.createElement('legend'); title.className = 'font-semibold text-slate-800 px-1';
+      title.textContent = `${'abcd'[i]}) ${text}`;
+      row.append(title);
+      [true, false].forEach(value => {
+        const label = document.createElement('label'); label.className = 'inline-flex items-center gap-2 mr-6 mt-2 cursor-pointer text-sm font-semibold';
+        const input = document.createElement('input'); input.type = 'radio'; input.name = `secure-tf-${i}`; input.value = String(value);
+        input.className = 'w-5 h-5 accent-indigo-700';
+        label.append(input, document.createTextNode(value ? 'Đúng' : 'Sai')); row.append(label);
+      });
+      list.append(row);
+    });
+    const submit = document.createElement('button'); submit.type = 'button';
+    submit.className = 'rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-bold p-3 mt-3';
+    submit.textContent = 'Nộp 4 ý Đúng / Sai';
+    submit.addEventListener('click', () => {
+      const values = q.statements.map((_, i) => list.querySelector(`input[name="secure-tf-${i}"]:checked`)?.value);
+      if (values.some(v => v === undefined)) { message('Hãy chọn Đúng hoặc Sai cho cả 4 ý.'); return; }
+      choose(values.map(v => v === 'true'));
+    }); list.append(submit);
+  } else {
+    q.items.forEach(text => {
+      const item = document.createElement('p'); item.className = 'p-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-800';
+      item.textContent = text; list.append(item);
+    });
+    const prompt = document.createElement('p'); prompt.className = 'font-bold mt-3'; prompt.textContent = 'Chọn số lượng đúng:'; list.append(prompt);
+    const buttons = document.createElement('div'); buttons.className = 'flex flex-wrap gap-2';
+    for (let n = 1; n <= q.maxChoices; n++) {
+      const button = document.createElement('button'); button.type = 'button'; button.textContent = String(n);
+      button.className = 'w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-300 text-indigo-800 font-extrabold hover:bg-indigo-700 hover:text-white';
+      button.addEventListener('click', () => choose(n)); buttons.append(button);
+    }
+    list.append(buttons);
+  }
+  box.append(list);
 }
 function tick() {
   if (!session || session.status !== 'active') { $('secure-timer').textContent = ''; return; }
@@ -131,7 +177,8 @@ async function signal(reason) {
     if (!session || session.id !== id || session.status !== 'active') return;
     session.warnings = result.warnings;
     session.status = result.status;
-    render();
+    if (result.status !== 'active') render();
+    else $('secure-warning').textContent = `Cảnh báo: ${result.warnings}/${result.warningLimit}. Vui lòng ở lại trang kiểm tra.`;
     alert(result.status === 'stopped'
       ? `Đã đạt ${result.warningLimit} cảnh báo. Đề đã dừng trên máy chủ.`
       : `Cảnh báo ${result.warnings}/${result.warningLimit}: trang kiểm tra đã ${reason === 'hidden' ? 'bị ẩn' : 'mất tiêu điểm'}.`);
