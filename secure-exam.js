@@ -18,7 +18,8 @@ const bank = [
     items: q.items.map(item => plain(item.text)), maxChoices: q.maxChoices, answer: q.correctAnswer }))
 ];
 let session = null, storageKey = '', lastSignalAt = 0;
-let shareHandle = null, sharePromptOpen = false, aborting = false;
+let shareHandle = null, sharePromptOpen = false, aborting = false, mobilePending = false;
+const mobileDevice = core.isMobileDevice(navigator.userAgent, navigator.maxTouchPoints);
 function key() { return 'bm_free_exam_' + (window.bioCloud?.uid || 'guest'); }
 function save() {
   try { if (session) localStorage.setItem(storageKey, JSON.stringify(session)); } catch (_) { /* chế độ riêng tư/hết bộ nhớ */ }
@@ -34,6 +35,11 @@ function load() {
         Number.isInteger(s.index) && s.index >= 0 && s.index <= 20 &&
         ['active', 'finished', 'stopped', 'expired', 'abandoned'].includes(s.status)) session = s;
   } catch (_) { /* không có lượt lưu */ }
+  if (session?.status === 'active' && ((mobileDevice && session.mode !== 'mobile-practice') ||
+      (!mobileDevice && session.mode === 'mobile-practice'))) {
+    // Never silently convert an existing attempt between supervised and practice modes.
+    session.status = 'abandoned'; save();
+  }
   if (session?.status === 'active') {
     if (Date.now() >= session.endsAt) { session.status = 'expired'; save(); }
     else { show(); return; }
@@ -49,6 +55,7 @@ function show() {
   message(''); render();
 }
 function hide() {
+  mobilePending = false;
   if (shareHandle) stopSharing();
   if (document.fullscreenElement === $('secure-view')) document.exitFullscreen().catch(() => {});
   $('secure-view').classList.add('hidden');
@@ -68,8 +75,9 @@ function render() {
   $('secure-progress').textContent = session.status === 'active' ? `Câu ${session.index + 1}/${session.paper.length}` : 'Đề đã kết thúc';
   $('exam-progress-fill').style.width = (session.index / session.paper.length * 100) + '%';
   $('exam-progress-track').setAttribute('aria-valuenow', String(session.index));
+  $('exam-mobile-label').classList.toggle('hidden', session.mode !== 'mobile-practice');
   $('secure-warning').textContent = session.status === 'active'
-    ? `Cảnh báo trên thiết bị: ${session.warnings}/${session.warningLimit}. ${session.aiWatch ? 'Theo dõi chuyển tab và mất tiêu điểm.' : 'Theo dõi chuyển tab.'} Đây không phải bằng chứng dùng AI hay kết quả thi được xác thực.`
+    ? `Cảnh báo trên thiết bị: ${session.warnings}/${session.warningLimit}. ${session.aiWatch ? 'Theo dõi chuyển tab và mất tiêu điểm.' : 'Theo dõi chuyển tab.'} ${session.mode === 'mobile-practice' ? 'Luyện tập không giám sát trên thiết bị này.' : 'Đang yêu cầu chia sẻ màn hình cho quản lý.'} Đây không phải bằng chứng dùng AI hay kết quả thi được xác thực.`
     : 'Đề đã kết thúc. Hãy bấm Thoát đề để trở về trang chủ.';
   if (session.status !== 'active') {
     const h = document.createElement('h3'); h.className = 'text-xl font-extrabold text-slate-800';
@@ -136,7 +144,7 @@ function render() {
     list.append(buttons);
   }
   box.append(list);
-  if (shareHandle && document.fullscreenElement === $('secure-view')) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
+  if (session.mode === 'mobile-practice' || (shareHandle && document.fullscreenElement === $('secure-view'))) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
 }
 
 function tick() {
@@ -162,20 +170,47 @@ function choose(choice) {
     if (document.fullscreenElement === $('secure-view')) document.exitFullscreen().then(() => $('secure-view').scrollIntoView({ behavior: 'smooth', block: 'start' })).catch(() => {});
     try {
       const resultKey = 'bm_free_exam_result_' + (window.bioCloud?.uid || 'guest');
-      localStorage.setItem(resultKey, JSON.stringify({ ...result, at: Date.now() }));
+      localStorage.setItem(resultKey, JSON.stringify({ ...result, mode: session.mode || 'supervised', at: Date.now() }));
     } catch (_) {}
   }
   save(); show();
 }
 async function start() {
-  if (document.body.dataset.auth !== 'ok' || !window.bioCloud?.uid) { alert('Hãy đăng nhập Google để được quản lý xem màn hình khi làm đề.'); return; }
-  if (!document.documentElement.requestFullscreen || !navigator.mediaDevices?.getDisplayMedia) { alert('Trình duyệt này không hỗ trợ toàn màn hình và chia sẻ màn hình. Hãy thử Chrome/Edge trên máy tính.'); return; }
+  if (document.body.dataset.auth !== 'ok' || !window.bioCloud?.uid) { alert('Hãy đăng nhập Google để làm đề.'); return; }
   load();
-  if (session?.status === 'active') { show(); await enterFullscreen(); return; } // tải lại vẫn tiếp tục lượt đang làm
+  if (session?.status === 'active') {
+    show();
+    if (session.mode !== 'mobile-practice') await enterFullscreen();
+    return;
+  }
+  if (mobileDevice) {
+    // Do not start the countdown until the user explicitly chooses an unmonitored attempt.
+    session = null; mobilePending = true; show(); updateGate();
+    $('secure-progress').textContent = 'Chưa bắt đầu';
+    $('exam-progress-fill').style.width = '0%';
+    $('exam-progress-track').setAttribute('aria-valuenow', '0');
+    $('secure-timer').textContent = '';
+    $('exam-mobile-label').classList.add('hidden');
+    $('exam-mobile-start').focus({ preventScroll: true });
+    return;
+  }
+  if (!document.documentElement.requestFullscreen || !navigator.mediaDevices?.getDisplayMedia || !window.RTCPeerConnection) {
+    alert('Chế độ có giám sát cần trình duyệt máy tính hỗ trợ toàn màn hình và chia sẻ màn hình. Hãy thử Chrome/Edge trên máy tính.'); return;
+  }
   try { session = core.createPaper(bank, window.bioSite || {}, Date.now()); }
   catch (err) { alert(err.message || 'Không tạo được đề.'); return; }
+  session.mode = 'supervised';
   storageKey = key(); lastSignalAt = 0; save(); show(); await enterFullscreen();
 }
+$('exam-mobile-start').addEventListener('click', () => {
+  if (!mobilePending || !mobileDevice) return;
+  try { session = core.createPaper(bank, window.bioSite || {}, Date.now()); }
+  catch (err) { message(err.message || 'Không tạo được đề.'); return; }
+  session.mode = 'mobile-practice'; mobilePending = false;
+  storageKey = key(); lastSignalAt = 0; save(); show();
+});
+$('exam-mobile-cancel').addEventListener('click', hide);
+
 function exit() {
   if (session?.status === 'active' && !confirm('Thoát đề hiện tại? Điểm và tiến độ của lượt này sẽ mất.')) return;
   if (session?.status === 'active') { session.status = 'abandoned'; save(); }
@@ -188,7 +223,7 @@ window.addEventListener('bio:user', load);
 load();
 // Cảnh báo trên thiết bị: không phát hiện Gemini và người học có thể xoá/sửa dữ liệu.
 function signal(reason) {
-  if (!session || session.status !== 'active' || !shareHandle || sharePromptOpen || (reason === 'blur' && !session.aiWatch)) return;
+  if (!session || session.status !== 'active' || (session.mode !== 'mobile-practice' && !shareHandle) || sharePromptOpen || (reason === 'blur' && !session.aiWatch)) return;
   if (Date.now() - lastSignalAt < 1700) return;
   lastSignalAt = Date.now();
   session.warnings++;
@@ -221,12 +256,16 @@ function stopSharing() {
 }
 function updateGate() {
   const active = session?.status === 'active' && !$('secure-view').classList.contains('hidden');
-  const missingShare = active && !shareHandle;
-  const missingFullscreen = active && !!shareHandle && document.fullscreenElement !== $('secure-view');
+  const practice = session?.mode === 'mobile-practice';
+  const missingShare = active && !practice && !shareHandle;
+  const missingFullscreen = active && !practice && !!shareHandle && document.fullscreenElement !== $('secure-view');
+  $('exam-mobile-gate').classList.toggle('hidden', !mobilePending);
+  $('secure-warning').classList.toggle('hidden', mobilePending);
+  $('exam-mobile-label').classList.toggle('hidden', !active || !practice);
   $('exam-share-gate').classList.toggle('hidden', !missingShare);
   $('exam-fullscreen-gate').classList.toggle('hidden', !missingFullscreen);
-  $('secure-question').classList.toggle('hidden', !!(missingShare || missingFullscreen));
-  $('secure-question').toggleAttribute('inert', !!(missingShare || missingFullscreen));
+  $('secure-question').classList.toggle('hidden', !!(mobilePending || missingShare || missingFullscreen));
+  $('secure-question').toggleAttribute('inert', !!(mobilePending || missingShare || missingFullscreen));
 }
 async function enterFullscreen() {
   try {

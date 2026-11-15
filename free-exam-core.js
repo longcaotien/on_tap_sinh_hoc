@@ -6,6 +6,12 @@
   else root.BioFreeExam = api;
 })(globalThis, function () {
   'use strict';
+  // Detect phone/tablet only for the explicitly labelled, unmonitored practice path.
+  // Lack of getDisplayMedia alone never grants a desktop bypass.
+  function isMobileDevice(ua, maxTouchPoints = 0) {
+    return /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(ua || '') ||
+      (/Macintosh/i.test(ua || '') && maxTouchPoints > 1);
+  }
   function shuffle(input) {
     const a = [...input];
     for (let i = a.length - 1; i > 0; i--) {
@@ -65,5 +71,5 @@
     }, 0);
     return { correct, score: Math.round(correct / session.paper.length * 100) / 10 };
   }
-  return { createPaper, getQuestion, validChoice, grade };
+  return { createPaper, getQuestion, validChoice, grade, isMobileDevice };
 });
