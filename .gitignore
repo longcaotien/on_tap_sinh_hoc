@@ -6,3 +6,6 @@ public-site/
 *.log
 # Không commit đáp án đề bảo vệ; nhập riêng qua trang admin.
 private-bank.seed.json
+
+# Ngân hàng 50 câu xuất ra để tải lên admin; có đáp án, không commit.
+ngan-hang-de-50-cau.json

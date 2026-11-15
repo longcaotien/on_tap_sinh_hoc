@@ -2,7 +2,7 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
-const { validateBank, createPaper, publicQuestion, grade, randomUUID } = require('./exam-logic');
+const { validateBank, createPaper, publicQuestion, validChoice, grade, randomUUID } = require('./exam-logic');
 initializeApp();
 const db = getFirestore();
 const region = 'asia-southeast1';
@@ -64,7 +64,7 @@ exports.startSecureExam = onCall(options, async request => {
 exports.submitSecureAnswer = onCall(options, async request => {
   const uid = uidOf(request);
   const { id, index, choice } = request.data || {};
-  if (typeof id !== 'string' || !Number.isInteger(index) || !Number.isInteger(choice) || choice < 0 || choice > 3)
+  if (typeof id !== 'string' || !Number.isInteger(index))
     throw new HttpsError('invalid-argument', 'Lựa chọn không hợp lệ.');
   const sessionRef = db.doc(`examSessions/${uid}`);
   const scoreRef = db.doc(`secureScores/${uid}`);
@@ -75,6 +75,7 @@ exports.submitSecureAnswer = onCall(options, async request => {
     assertActive(s, { id });
     if (!userSnap.exists || userSnap.data().blocked) throw new HttpsError('permission-denied', 'Tài khoản bị chặn.');
     if (index !== s.index) throw new HttpsError('failed-precondition', 'Câu hỏi đã được trả lời. Tải lại trang để đồng bộ.');
+    if (!validChoice(s.paper[index], choice)) throw new HttpsError('invalid-argument', 'Vui lòng trả lời đúng định dạng của câu hỏi.');
     const nextAnswers = [...s.answers, choice];
     const nextIndex = index + 1;
     if (nextIndex < s.paper.length) {
