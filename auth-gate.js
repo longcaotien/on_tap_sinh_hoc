@@ -30,6 +30,8 @@ function friendlyError(e) {
   switch (e && e.code) {
     case 'auth/unauthorized-domain':
       return 'Tên miền này chưa được cho phép. Quản trị viên cần thêm nó vào Authentication → Settings → Authorized domains trong Firebase.';
+    case 'auth/operation-not-supported-in-this-environment':
+      return 'Trình duyệt trong ứng dụng không hỗ trợ đăng nhập Google. Hãy mở trang bằng Chrome hoặc Safari rồi đăng nhập lại.';
     case 'auth/network-request-failed':
       return 'Mất kết nối mạng. Kiểm tra mạng rồi thử lại.';
     case 'permission-denied':
@@ -39,13 +41,13 @@ function friendlyError(e) {
   }
 }
 
-// Trình duyệt trong ứng dụng (Zalo, Facebook, ...) bị Google chặn đăng nhập
-if (/Zalo|FBAN|FBAV|FB_IAB|Instagram|Line\/|Messenger|TikTok|; wv\)/i.test(navigator.userAgent)) {
-  $('gate-inapp').hidden = false;
-}
+// Giữ nút Google ẩn trong webview: redirect/popup ở đây thường bị nhà cung cấp chặn.
+// inapp-browser.js hiển thị cách chuyển qua trình duyệt ngoài trước khi Firebase tải.
+if (window.bioInApp?.active) $('gate-login-btn').hidden = true;
 
 const loginBtn = $('gate-login-btn');
 loginBtn.addEventListener('click', async () => {
+  if (window.bioInApp?.active) return;
   loginBtn.disabled = true;
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });

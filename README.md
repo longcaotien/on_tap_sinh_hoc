@@ -4,4 +4,6 @@ Trang ôn tập Sinh học 11 Bài 6 và Bài 8 trên GitHub Pages. **Đề 20 c
 
 **Giới hạn:** đáp án và điểm tính trên thiết bị nên ai biết kỹ thuật đều xem hoặc sửa được; cảnh báo chuyển tab/mất tiêu điểm/toàn màn hình không phát hiện AI và không phải bằng chứng gian lận. Không dùng bảng điểm địa phương cho thi chính thức. Đăng nhập Google và cài cảnh báo ở admin dùng Firebase Authentication/Firestore trong hạn mức miễn phí (nếu đã cấu hình).
 
+Nếu mở link trong Zalo/Messenger, trang sẽ nhận biết và hướng dẫn mở ngoài ứng dụng; trên Android có nút **Thử mở bằng Chrome**, kèm nút sao chép đường dẫn cho Chrome/Safari. Trình duyệt web không thể bảo đảm ép ứng dụng mở trình duyệt ngoài khi bấm liên kết; nếu bị chặn, dùng menu **Mở bằng trình duyệt** của ứng dụng hoặc sao chép link.
+
 Xem [FIREBASE_SETUP.md](FIREBASE_SETUP.md) để cấu hình tài khoản/admin và giới hạn của chế độ miễn phí. Mã Cloud Functions còn trong `functions/` là phương án máy chủ **tùy chọn**, không được giao diện miễn phí gọi đến.
