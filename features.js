@@ -271,7 +271,7 @@
                 '<div style="margin-top:1rem;"><button type="button" class="fx-btn fx-btn-primary" data-fx="close">Đã hiểu</button></div>');
             return;
         }
-        var note = '<p class="fx-muted">Chỉ xếp hạng điểm đề 20 câu được chấm trên máy chủ. Điểm luyện tập trên thiết bị không được tính.</p>';
+        var note = '<p class="fx-muted">Bảng điểm cũ chỉ để tham khảo. Đề 20 câu đã dừng; không ghi thêm điểm mới từ đề này.</p>';
         if (!window.bioCloud || !uid) {
             openModal('Bảng xếp hạng', note +
                 '<p style="margin-top:.9rem;font-size:.9rem;color:#0d2b22;">Bảng xếp hạng cần đăng nhập Google. ' +
@@ -282,7 +282,7 @@
         window.bioCloud.loadLeaderboard().then(function (list) {
             if (modal.hidden || modalTitle.textContent !== 'Bảng xếp hạng') return;
             if (!list.length) {
-                modalBody.innerHTML = note + '<p style="margin-top:.9rem;font-size:.9rem;color:#0d2b22;">Chưa có ai trên bảng. Hãy là người đầu tiên hoàn thành đề 20 câu bảo vệ.</p>';
+                modalBody.innerHTML = note + '<p style="margin-top:.9rem;font-size:.9rem;color:#0d2b22;">Chưa có điểm nào trong bảng lưu từ hệ thống cũ.</p>';
                 return;
             }
             var medals = ['🥇', '🥈', '🥉'];
@@ -332,8 +332,6 @@
             data.answered = a.answered | 0;
             data.total = a.total | 0;
             data.score = round2(Math.max(0, Math.min(10, +a.score || 0)));
-            data.cur = String(a.cur || '').slice(0, 40);
-            if (a.ans) data.ans = a.ans;   // đáp án đã chọn, để quản lý xem lại đúng màn hình
         }
         presenceSentAt = Date.now();
         presenceLast = JSON.stringify(data);

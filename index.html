@@ -234,26 +234,6 @@
         }
         #mini-score:not(.hidden) { display: inline-flex; align-items: center; white-space: nowrap; }
 
-        /* Đề thi toàn màn hình: chỉ phần câu hỏi cuộn, tránh giật lên đầu trang mỗi câu. */
-        #secure-view:fullscreen { max-width:none; width:100%; height:100%; display:flex; flex-direction:column; gap:1rem;
-            overflow:hidden; padding:clamp(.75rem,2vw,1.5rem); background:linear-gradient(145deg,#eef2ff,#f0fdf4); color:#1e293b; }
-        #secure-view:fullscreen > * + * { margin-top:0 !important; }
-        #secure-view:fullscreen #secure-question { min-height:0; flex:1; overflow-y:auto; overscroll-behavior:contain; }
-        #secure-view:fullscreen #secure-warning { margin:0; }
-        #secure-view:fullscreen #secure-message { margin:0; }
-        @media (max-width: 640px) {
-            #secure-view { padding-bottom: env(safe-area-inset-bottom, 1rem); }
-            #secure-question { overflow-wrap: anywhere; }
-            #secure-question button { touch-action: manipulation; }
-        }
-        #exam-progress-track { height:.4rem; border-radius:999px; background:rgba(255,255,255,.25); overflow:hidden; margin-top:.9rem; }
-        #exam-progress-fill { display:block; width:0; height:100%; border-radius:inherit; background:linear-gradient(90deg,#34d399,#a5b4fc); transition:width .35s ease; }
-        #secure-question button:not(:disabled) { transition:background-color .16s ease, border-color .16s ease, transform .16s ease, box-shadow .16s ease; }
-        #secure-question button:not(:disabled):active { transform:scale(.99); }
-        #secure-view .exam-panel { border-radius:1rem; border:1px solid #c7d2fe; background:#fff; box-shadow:0 12px 32px -16px #312e81; }
-        #secure-view .exam-gate { border-radius:1rem; padding:1.25rem; background:#fff7ed; color:#78350f; border:1px solid #fed7aa; }
-        @keyframes examAppear { from { opacity:.5; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
-        @media (prefers-reduced-motion:no-preference) { #secure-question.exam-enter > * { animation:examAppear .22s ease-out both; } }
         /* ---------- Cổng đăng nhập Google ---------- */
         #gate-login-btn[hidden], #gate-open-chrome[hidden], #gate-copy-link[hidden], #gate-browser-url[hidden] { display: none !important; }
         #auth-gate { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center;
@@ -492,10 +472,6 @@
 
         <!-- ==================== 1. GIAO DIỆN TRANG CHỦ (HOME VIEW) ==================== -->
         <section id="view-home" class="space-y-10 fade-in">
-            <button onclick="window.secureExam ? window.secureExam.start() : alert('Đang tải chức năng thi, thử lại sau ít giây.')" class="w-full rounded-2xl bg-gradient-to-r from-indigo-800 via-violet-700 to-purple-700 p-5 sm:p-6 text-white shadow-xl hover:shadow-2xl hover:-translate-y-0.5 active:translate-y-0 transition-all text-left flex items-center justify-between gap-4 focus-visible:outline-4 focus-visible:outline-amber-400">
-                <span><span class="block uppercase tracking-widest text-xs font-bold text-indigo-200">Mới · Đề luyện miễn phí hai bài</span><strong class="block text-xl sm:text-2xl mt-1">Làm đề miễn phí 20 câu ngẫu nhiên</strong><span class="block text-sm text-indigo-100 mt-1">10 câu Bài 6 + 10 câu Bài 8 · theo dõi chuyển tab</span></span>
-                <i class="fa-solid fa-arrow-right text-2xl" aria-hidden="true"></i>
-            </button>
             <!-- Hero Banner -->
             <div class="relative rounded-3xl overflow-hidden bg-gradient-to-br from-bio-950 via-bio-800 to-teal-900 text-white shadow-2xl border border-bio-700/50">
                 <!-- Họa tiết sinh học nền -->
@@ -806,11 +782,7 @@
 
         <!-- ==================== 2. GIAO DIỆN HỌC & KIỂM TRA (QUESTIONS VIEW) ==================== -->
         <section id="view-questions" class="hidden space-y-6 fade-in">
-            
-            <button id="exam-start" onclick="window.secureExam ? window.secureExam.start() : alert('Đang tải chức năng thi, thử lại sau ít giây.')" class="w-full rounded-2xl p-5 sm:p-6 text-left bg-gradient-to-r from-indigo-800 via-violet-700 to-purple-700 text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all focus-visible:outline-4 focus-visible:outline-amber-400 flex items-center justify-between gap-4">
-                <span><span class="block text-xs uppercase tracking-widest text-indigo-200 font-bold">Đề luyện miễn phí</span><strong class="block text-lg sm:text-xl mt-1">Làm đề miễn phí 20 câu ngẫu nhiên</strong><span class="block text-sm text-indigo-100 mt-1">Lấy từ cả Bài 6 và Bài 8 · có cảnh báo rời trang</span></span>
-                <i class="fa-solid fa-arrow-right text-xl" aria-hidden="true"></i>
-            </button>
+
             <!-- THANH ĐIỀU KHIỂN (đóng/mở được) -->
             <div id="toolbar" class="toolbar glass-card shadow-md" data-open="true" data-practice="false">
                 <div class="toolbar-head">
@@ -939,42 +911,6 @@
             </div>
 
         </section>
-
-        <section id="secure-view" class="hidden max-w-3xl mx-auto space-y-5 fade-in" aria-labelledby="secure-title">
-            <div class="rounded-3xl bg-gradient-to-br from-indigo-950 via-indigo-800 to-violet-800 text-white p-5 sm:p-6 shadow-lg">
-                <div class="text-indigo-200 uppercase tracking-widest text-xs font-bold">Đề luyện miễn phí · bài 6 & bài 8</div>
-                <h2 id="secure-title" class="text-2xl sm:text-3xl font-extrabold mt-2">Kiểm tra 20 câu</h2>
-                <p class="mt-2 text-indigo-100 text-sm">10 câu mỗi bài · 25 phút · điểm và cảnh báo lưu trên thiết bị. Máy tính: cần toàn màn hình và tự cấp quyền chia sẻ để admin xem trực tiếp. Điện thoại/máy tính bảng: chỉ luyện tập, không chia sẻ, không giám sát; điểm không xác thực.</p>
-                <div id="exam-progress-track" role="progressbar" aria-label="Tiến độ bài kiểm tra" aria-valuemin="0" aria-valuemax="20" aria-valuenow="0"><i id="exam-progress-fill"></i></div>
-                <div class="flex flex-wrap justify-between items-center gap-3 mt-4">
-                    <span id="secure-progress" class="font-bold px-3 py-1.5 bg-white/15 rounded-lg">Đang tải đề...</span>
-                    <span id="secure-timer" class="font-bold tabular-nums" role="timer"></span>
-                    <button id="secure-leave" type="button" class="px-4 py-2 rounded-xl border border-white/40 hover:bg-white/15 font-bold text-sm">Thoát đề</button>
-                </div>
-            </div>
-            <div id="exam-mobile-gate" class="exam-gate hidden" role="region" aria-label="Luyện tập trên điện thoại">
-                <h3 class="font-extrabold text-lg">Luyện tập trên điện thoại · không giám sát</h3>
-                <p class="text-sm mt-1">Trình duyệt di động thường không hỗ trợ chia sẻ toàn bộ màn hình. Chế độ này không yêu cầu chia sẻ hay toàn màn hình. Admin <strong>không xem trực tiếp</strong>, không xác minh điểm và không phát hiện Gemini. Hệ thống chỉ ghi cảnh báo rời trang trên thiết bị này. Bạn có muốn bắt đầu lượt luyện 20 câu/25 phút?</p>
-                <div class="flex flex-wrap gap-2 mt-3">
-                    <button id="exam-mobile-start" type="button" class="min-h-11 px-5 rounded-xl bg-indigo-700 text-white font-bold hover:bg-indigo-800">Bắt đầu luyện tập không giám sát</button>
-                    <button id="exam-mobile-cancel" type="button" class="min-h-11 px-5 rounded-xl border border-slate-300 font-bold">Quay lại</button>
-                </div>
-            </div>
-            <div id="exam-mobile-label" class="hidden rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-950 text-sm font-bold" role="status">Chế độ luyện tập trên điện thoại · KHÔNG chia sẻ màn hình · KHÔNG giám sát trực tiếp · điểm không xác thực.</div>
-            <div id="exam-share-gate" class="exam-gate hidden" role="region" aria-label="Cấp quyền chia sẻ màn hình">
-                <h3 class="font-extrabold text-lg">Chia sẻ màn hình để tiếp tục</h3>
-                <p class="text-sm mt-1">Bạn chủ động chọn <strong>Toàn bộ màn hình</strong> trong hộp thoại trình duyệt. Hình ảnh truyền trực tiếp cho quản lý qua kết nối ngang hàng, không lưu video. Nếu từ chối, chọn cửa sổ/tab hoặc dừng chia sẻ, lượt này sẽ thoát. Không thể tự động nhận diện Gemini.</p>
-                <button id="exam-share-btn" type="button" class="mt-3 min-h-11 px-5 rounded-xl bg-indigo-700 text-white font-bold hover:bg-indigo-800">Tôi đồng ý · Chia sẻ toàn bộ màn hình</button>
-            </div>
-            <div id="exam-fullscreen-gate" class="exam-gate hidden" role="region" aria-label="Quay lại toàn màn hình">
-                <p class="font-bold">Để tiếp tục làm đề, hãy bật lại chế độ toàn màn hình.</p>
-                <button id="exam-fullscreen-btn" type="button" class="mt-2 min-h-11 px-5 rounded-xl bg-indigo-700 text-white font-bold">Vào toàn màn hình</button>
-            </div>
-            <div id="exam-stream-status" class="hidden text-xs font-semibold px-3 py-1 rounded-lg bg-indigo-50 text-indigo-900" role="status"></div>
-            <p id="secure-warning" class="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950 text-sm font-semibold" role="status"></p>
-            <div id="secure-question" class="glass-card rounded-2xl p-5 sm:p-7 shadow-lg border border-indigo-100"></div>
-            <p id="secure-message" class="text-sm text-rose-700 font-semibold" role="alert"></p>
-        </section>
     </main>
 
     <!-- ==================== FOOTER ==================== -->
@@ -997,14 +933,11 @@
 
     <!-- ==================== DỮ LIỆU & LOGIC JAVASCRIPT ==================== -->
     <script src="questions.js?v=__BUILD__"></script>
-    <script src="free-exam-core.js?v=__BUILD__"></script>
     <script>
 
         // =========================================================================
         // 5. QUẢN LÝ TRẠNG THÁI & LOGIC XÁO TRỘN (SHUFFLE CÂU HỎI & ĐÁP ÁN ABCD)
         // =========================================================================
-        // Dữ liệu gốc công khai, dùng cho đề miễn phí chạy hoàn toàn trong trình duyệt.
-        window.bioExamSource = { mcq: originalMCQData, tf: originalTFData, sa: originalSAData };
         let currentMode = 'home';     // 'home' | 'study' | 'practice'
         let currentTopic = 'all';     // 'all' | 'b6' | 'b8'
         let currentPartFilter = 'all';// 'all' | 'part1' | 'part2' | 'part3'
@@ -1032,37 +965,11 @@
             scale: 10
         };
 
-        // Câu thuộc bộ lọc hiện tại? ('wrong' = danh sách câu sai đã chụp lại lúc bắt đầu ôn)
-        // Câu vừa thao tác gần nhất và bản chụp đáp án (theo thứ tự GỐC, không phụ thuộc xáo trộn)
-        // để trang quản lý dựng lại đúng màn hình người học đang làm.
-        let lastTouched = '';
+        // Câu thuộc bộ lọc hiện tại? ('wrong' = danh sách câu sai đã chụp lại lúc bắt đầu ôn).
         let lastProgress = { answered: 0, total: 0 };
-
-        function answerSnapshot() {
-            const mcq = {}, tf = {}, sa = {};
-            activeMCQData.forEach(q => {
-                const c = userAnswers.mcq[q.uid];
-                if (c === undefined) return;
-                const o = originalMCQData.find(x => x.uid === q.uid);
-                mcq[q.uid] = o ? o.options.indexOf(q.options[c]) : c;
-            });
-            activeTFData.forEach(q => {
-                const o = originalTFData.find(x => x.uid === q.uid);
-                if (!o) return;
-                const vals = o.statements.map(os => {
-                    const st = q.statements.find(s => s.text === os.text);
-                    const v = st ? userAnswers.tf[`${q.uid}_${st.label}`] : undefined;
-                    return v === undefined ? null : v;
-                });
-                if (vals.some(v => v !== null)) tf[q.uid] = vals;
-            });
-            Object.keys(userAnswers.sa).forEach(k => { sa[k] = userAnswers.sa[k]; });
-            return { mcq, tf, sa, rev: Object.keys(revealedMCQ) };
-        }
 
         // Đang làm dở một lượt kiểm tra? (dùng để không tự tải lại trang giữa chừng)
         window.bioBusy = function () {
-            if (!document.getElementById('secure-view').classList.contains('hidden')) return !!(window.secureExam && window.secureExam.active());
             return currentMode === 'practice' && lastProgress.answered > 0 && lastProgress.answered < lastProgress.total;
         };
 
@@ -1075,7 +982,6 @@
         function clearAnswers() {
             userAnswers = { mcq: {}, tf: {}, sa: {} };
             revealedMCQ = {};
-            lastTouched = '';
             if (window.bioFx) bioFx.newAttempt();
         }
 
@@ -1248,7 +1154,6 @@
         }
 
         function switchMainView(viewName) {
-            if (window.secureExam && window.secureExam.active()) { window.secureExam.notice(); return; }
             currentMode = viewName;
             const homeSection = document.getElementById('view-home');
             const questionsSection = document.getElementById('view-questions');
@@ -1708,7 +1613,6 @@
         function selectMCQ(uid, optionIndex) {
             if (userAnswers.mcq[uid] !== undefined || revealedMCQ[uid]) return;
             userAnswers.mcq[uid] = optionIndex;
-            lastTouched = uid;
             const mq = activeMCQData.find(x => x.uid === uid);
             if (mq && window.bioFx) bioFx.record(uid, optionIndex === mq.correct);
             renderMCQs(uid);
@@ -1719,7 +1623,6 @@
         function revealMCQ(uid) {
             if (userAnswers.mcq[uid] !== undefined || revealedMCQ[uid]) return;
             revealedMCQ[uid] = true;
-            lastTouched = uid;
             if (window.bioFx) bioFx.record(uid, false);
             renderMCQs(uid);
             updateScoreUI();
@@ -1729,7 +1632,6 @@
             const key = `${uid}_${label}`;
             if (userAnswers.tf[key] !== undefined) return;
             userAnswers.tf[key] = boolVal;
-            lastTouched = uid;
             const tq = activeTFData.find(x => x.uid === uid);
             if (tq && window.bioFx) {
                 const st = getTFState(tq);
@@ -1742,7 +1644,6 @@
         function selectSA(uid, numVal) {
             if (userAnswers.sa[uid] !== undefined) return;
             userAnswers.sa[uid] = numVal;
-            lastTouched = uid;
             const sq = activeSAData.find(x => x.uid === uid);
             if (sq && window.bioFx) bioFx.record(uid, numVal === sq.correctAnswer);
             renderSAs(uid);
@@ -1801,8 +1702,7 @@
             }
             lastProgress = { answered: answeredCount, total: totalQuestions };
             if (window.bioFx) bioFx.activity({
-                mode: currentMode, topic: currentTopic, answered: answeredCount, total: totalQuestions, score: score10,
-                cur: lastTouched, ans: currentMode === 'practice' ? answerSnapshot() : null
+                mode: currentMode, topic: currentTopic, answered: answeredCount, total: totalQuestions, score: score10
             });
             if (window.bioFx && currentMode === 'practice') {
                 bioFx.onProgress({ topic: currentTopic, answered: answeredCount, total: totalQuestions, score: score10 });
@@ -1859,7 +1759,6 @@
         });
     </script>
     <script src="features.js?v=__BUILD__"></script>
-    <script type="module" src="secure-exam.js?v=__BUILD__"></script>
 <button id="fab-top" class="fab" onclick="scrollPageTop()" aria-label="Lên đầu trang"><i class="fa-solid fa-arrow-up"></i></button>
 </body>
 </html>

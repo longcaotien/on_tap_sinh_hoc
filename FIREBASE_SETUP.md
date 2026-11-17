@@ -1,6 +1,6 @@
 # Cài đặt đăng nhập Google và trang quản lý
 
-Firebase đã được cấu hình trong `firebase-config.js`. **Đề 20 câu miễn phí không cần Cloud Functions, gói Blaze hoặc nhập file JSON.** Nó dùng 50 câu trong `questions.js`, chạy và lưu điểm trên thiết bị; Firebase Authentication/Firestore cho đăng nhập/admin có hạn mức gói miễn phí (Spark).
+Firebase đã được cấu hình trong `firebase-config.js`. Chỉ còn ôn tập và luyện tập 50 câu trong `questions.js`; đề riêng 20 câu và chia sẻ màn hình đã tắt. Firebase Authentication/Firestore cho đăng nhập và quản lý có hạn mức gói miễn phí (Spark).
 
 ## 1. Tạo dự án Firebase
 1. Vào https://console.firebase.google.com và đăng nhập bằng tài khoản Google của bạn.
@@ -43,37 +43,20 @@ Mở `https://longcaotien.github.io/on_tap_sinh_hoc/admin.html`, đăng nhập b
 - Tab **Câu hay sai**: câu nào đang có nhiều người sai nhất.
 - Ô **Bảo trì** ở đầu trang: bấm **Tắt web để bảo trì** thì mọi người học (kể cả đang mở trang) chỉ thấy màn hình "Trang đang bảo trì" kèm lời nhắn của bạn; bấm **Mở lại web** thì trang tự mở lại cho họ. Trang quản lý không bị ảnh hưởng.
 - Tab **Đang làm**: ai đang mở trang, đang ở trang chủ / ôn tập / kiểm tra, làm tới câu mấy và điểm hiện tại.
-- Nút **Xem màn hình** trong tab đó: hiện từng câu người học đang làm, đáp án họ đã chọn, đúng hay sai, và tự cuộn theo câu vừa làm. Đây là bản dựng lại từ đáp án gửi về (chậm vài giây), không phải quay video màn hình.
+- Không còn chức năng xem trực tiếp hoặc xem bài mô phỏng từng câu. Tab **Đang làm** chỉ có trạng thái/tiến độ tổng quát. Lịch sử câu sai và điểm cũ vẫn có thể xem trong các mục khác.
 
-Hai tính năng trên dùng thêm hai bảng `settings` và `presence`, nên cũng cần Publish lại `firestore.rules`.
+Bảo trì và trạng thái tổng quát dùng `settings` và `presence`; cần Publish lại `firestore.rules` khi thay đổi rules.
 
-## 7. Đề luyện miễn phí 20 câu
+## 7. Tắt đề 20 câu và chia sẻ màn hình
 
-- Chọn **Làm đề miễn phí 20 câu ngẫu nhiên** ở trang chủ. Hệ thống lấy 10 câu Bài 6 và 10 câu Bài 8 từ 50 câu công khai: mỗi bài 6 ABCD, 2 Đúng/Sai, 2 trả lời ngắn. Câu hỏi và lựa chọn ABCD được trộn mỗi lượt; mệnh đề Đúng/Sai không gắn hình cũng được trộn. Hai thiết bị có thể thấy đề khác nhau. **Không cần chọn file ở trang admin**, không cần triển khai Functions hay bật Blaze.
-- Trên điện thoại/máy tính bảng: đăng nhập rồi chọn **Bắt đầu luyện tập không giám sát**. Không có chia sẻ màn hình/toàn màn hình, không gửi video, admin không thể xem trực tiếp; chỉ cảnh báo chuyển tab/mất tiêu điểm được lưu cục bộ. Đây là luyện tập cá nhân, không phải đề thi được giám sát. Lượt đang làm ở chế độ khác trên cùng trình duyệt sẽ không tự đổi sang chế độ hiện tại: lượt cũ dừng, bạn cần xác nhận lượt mới.
-- Một lượt có 25 phút. Tiến độ, điểm và số lần cảnh báo được lưu trong `localStorage` của trình duyệt đang dùng để tải lại có thể tiếp tục. Admin có thể đặt giới hạn cảnh báo và bật/tắt cảnh báo mất tiêu điểm qua `settings/site` trên Firestore (cần đăng nhập/cập nhật Rules); chuyển tab luôn được cảnh báo. Nếu chưa đọc được cài đặt, mặc định 3 cảnh báo.
-- **Đây chỉ là luyện tập, không phải hệ thống thi chống gian lận.** `questions.js` công khai chứa toàn bộ đáp án; người dùng có thể sửa điểm, giờ và cảnh báo trong trình duyệt, hoặc dùng thiết bị khác. Không phát hiện được Gemini trên màn hình. Điểm đề miễn phí **không gửi lên `secureScores`/bảng xếp hạng**, admin không thể xác thực điểm từ chế độ này. Bảng xếp hạng cũ chỉ dành cho chế độ máy chủ tùy chọn.
-- Mục **Ngân hàng đề cho chế độ máy chủ** ở trang admin **không ảnh hưởng** đến đề miễn phí. Nếu chỉ muốn miễn phí thì bỏ qua.
+- Đã bỏ nút bắt đầu đề 20 câu, client chấm đề, chức năng chia sẻ WebRTC, màn hình xem trực tiếp và bản xem lại câu trả lời đang chọn. Ôn tập và luyện tập 50 câu thông thường vẫn hoạt động, điểm/câu sai lưu như trước. Bảng xếp hạng và dữ liệu từ phiên bản cũ chưa bị xóa tự động, nhưng không còn bài 20 câu mới để ghi điểm.
+- **Bắt buộc Publish `firestore.rules` mới** tại Firebase Console → Firestore Database → Rules: quy tắc mới từ chối mọi thao tác tới `screenShares` và từ chối ghi bản sao đáp án từng câu (`presence.ans`/`presence.cur`). Chỉ merge lên GitHub Pages không thay đổi rules đã công bố. Rules không xóa dữ liệu cũ; nếu muốn xóa SDP/tín hiệu cũ trong `screenShares`, cần chủ động xóa collection đó trong Firebase Console. Trước khi Publish, bản web cũ còn mở có thể tiếp tục hoạt động cho đến khi nó tải lại hoặc dừng chia sẻ.
+- Nếu **từng triển khai Firebase Cloud Functions**, việc xóa mã và bỏ cấu hình `functions` trong repo **không xóa Function đang chạy**. Dùng Firebase Console hoặc Firebase CLI (với đúng dự án và khu vực `asia-southeast1`) để xóa riêng: `startSecureExam`, `submitSecureAnswer`, `reportSecureSignal`, `leaveSecureExam`, `getSecureExam`. Hãy xác nhận tên/dự án trước khi xóa. Cloud Functions dùng Admin SDK nên Firestore Rules **không chặn được** Function đã triển khai; đây là bước cần làm để tắt hoàn toàn backend. Không bật gói trả phí chỉ để xóa nếu dự án không có Functions.
+- Không cần xóa dữ liệu lịch sử/điểm cũ nếu bạn muốn giữ hồ sơ. Việc tắt trang không đồng nghĩa xóa dữ liệu đã lưu trên máy người học hoặc trong Firestore.
 
 ## 8. Tự cập nhật phiên bản
 
-GitHub Actions triển khai giao diện lên Pages. Đang làm dở đề sẽ thấy thanh nhắc cập nhật; làm xong mới tải phiên bản mới. Chỉ các tài nguyên công khai cần thiết được đưa lên Pages; không đưa rules hay thư mục Git lên hosting.
-
-## 9. Nếu sau này muốn chấm điểm trên máy chủ (tùy chọn, KHÔNG miễn phí bảo đảm)
-
-Mã mẫu ở `functions/`, `firebase.json` và mục nhập JSON trong trang admin còn lại cho phương án Cloud Functions. Firebase Functions thế hệ 2 yêu cầu gói **Blaze** có thể phát sinh phí. Giao diện đề miễn phí hiện tại **không gọi Functions**, kể cả khi chúng đã được triển khai. Không bật Blaze chỉ để sửa lỗi thông báo cũ.
-
-Nếu tự triển khai lại phiên bản máy chủ, cần thay giao diện đề miễn phí bằng client Functions tương ứng và kiểm thử riêng. Không dùng 50 câu công khai để kỳ vọng giấu đáp án. Có thể tạo file JSON theo định dạng tùy chọn bằng `node scripts/export-legacy-bank.cjs`, nhưng file có đáp án phải giữ ngoài Git. Dữ liệu `secureScores` trước đây không đại diện cho điểm đề miễn phí.
-
-## 10. Toàn màn hình và chia sẻ màn hình trực tiếp (gói Firebase Spark)
-
-- **Chế độ giám sát trên máy tính** yêu cầu **đăng nhập Google**, trình duyệt hỗ trợ Fullscreen API + `getDisplayMedia`/WebRTC (nên dùng Chrome/Edge trên máy tính) và **Publish lại `firestore.rules`** để bật `screenShares/{uid}`. Không cần Cloud Functions/Blaze. Firestore Spark có hạn mức miễn phí; hết hạn mức thì tính năng có thể ngừng hoạt động, không hứa hoạt động không giới hạn.
-- Trên máy tính, nhấn bắt đầu → trình duyệt xin toàn màn hình → người học **tự bấm Chia sẻ toàn bộ màn hình** và chọn *Entire screen/Toàn bộ màn hình* trong hộp thoại trình duyệt. Trang không thể tự cấp quyền, không thể ép người học chọn màn hình thật nếu trình duyệt không báo loại màn hình. Từ chối/chọn cửa sổ hay tab/dừng chia sẻ → thoát lượt. Nếu trình duyệt tự thoát fullscreen trong lúc chọn nguồn, bấm **Vào toàn màn hình** trước khi làm tiếp.
-- Admin vào `admin.html` → tab **Đang làm** → **Xem trực tiếp**. Video truyền ngang hàng qua WebRTC (không lưu video hay ghi âm); Firestore chỉ giữ tín hiệu kết nối SDP (có thể chứa thông tin kết nối mạng/IP), thời điểm chia sẻ, loại màn hình do trình duyệt tự báo và số cảnh báo tự báo từ client. Người học cần tránh để lộ dữ liệu riêng tư khi chia sẻ. Admin có thể **Đánh dấu nghi vấn** sau khi xem. Nút **Xem bài mô phỏng** khác với xem trực tiếp.
-- Chuyển tab, mất tiêu điểm (nếu admin bật), thoát fullscreen, hoặc dừng truyền hình ảnh được cảnh báo/thoát lượt. **Không có nhận diện AI/Gemini tự động từ hình ảnh**; Gemini có thể mở trên thiết bị khác, tín hiệu client có thể sửa giả, và trình duyệt không thể chứng thực video luôn là toàn bộ màn hình. Không dùng các tín hiệu này làm bằng chứng tuyệt đối.
-- WebRTC không có TURN trả phí; một số mạng NAT/tường lửa sẽ không kết nối được. Admin có thể chưa online lúc học viên bắt đầu; nếu không kết nối được, người học sẽ thấy lỗi/thoát bài. Đóng cửa sổ xem khi đang kết nối có thể ngắt giám sát và làm lượt thi dừng. Nếu muốn giám sát đáng tin cậy ở quy mô lớn cần hạ tầng và người giám thị riêng, không thể bảo đảm miễn phí hay chống gian lận tuyệt đối.
-
-**Kiểm tra sau khi triển khai:** Dùng một trình duyệt đăng nhập tài khoản Google học viên, trình duyệt khác đăng nhập quản lý tại `admin.html`. Bật toàn màn hình, cấp quyền *Entire screen*, rồi mở tab **Đang làm → Xem trực tiếp** trên máy quản lý. Thử dừng chia sẻ bằng thanh công cụ của trình duyệt: lượt học viên phải tự thoát. Nếu báo `permission-denied`, trước hết hãy Publish lại `firestore.rules`. Nếu chỉ hiện “chờ kết nối” rồi thất bại, mạng hiện tại có thể chặn WebRTC/STUN; thử hai máy trên mạng khác. Phần truyền video cần kiểm thử thủ công trên hai trình duyệt thật, không thể xác thực bằng kiểm thử JavaScript đơn thuần.
+GitHub Actions triển khai giao diện lên Pages. Người đang làm dở phần luyện tập 50 câu sẽ thấy thanh nhắc cập nhật; sau khi họ rời bài, trang tải bản mới. Bản web cũ được mở trước khi triển khai có thể còn chạy cho tới khi tải lại. Chỉ tài nguyên tĩnh cần thiết được đưa lên Pages; không đưa rules hay thư mục Git lên hosting.
 
 ## Mở từ Zalo, Messenger, Facebook…
 
