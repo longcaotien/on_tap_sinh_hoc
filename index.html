@@ -107,8 +107,8 @@
             transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .glass-card:hover {
-            box-shadow: 0 12px 30px -8px rgba(5, 150, 105, 0.12);
+        @media (hover: hover) and (pointer: fine) {
+            .glass-card:hover { box-shadow: 0 12px 30px -8px rgba(5, 150, 105, 0.12); }
         }
 
         .glass-nav {
@@ -119,11 +119,11 @@
         }
 
         .fade-in {
-            animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation: fadeIn .28s ease-out both;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
@@ -137,10 +137,11 @@
         }
 
         .option-btn {
-            transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: background-color .18s ease, border-color .18s ease, color .18s ease,
+                        box-shadow .18s ease, transform .18s ease;
         }
-        .option-btn:hover:not(.disabled-opt) {
-            transform: translateX(5px);
+        @media (hover: hover) and (pointer: fine) {
+            .option-btn:hover:not(.disabled-opt) { transform: translateX(4px); }
         }
 
         /* Custom Scrollbar */
@@ -179,7 +180,6 @@
 
         /* Đáp án A/B/C/D: vùng chạm lớn, không giật trên cảm ứng */
         .option-btn { border-radius: .9rem; min-height: 3.25rem; line-height: 1.45; }
-        @media (hover: none) { .option-btn:hover:not(.disabled-opt) { transform: none; } }
         .option-btn:active:not(.disabled-opt) { transform: scale(.985); }
 
         /* ---------- Thanh điều khiển đóng/mở ---------- */
@@ -255,6 +255,7 @@
         @keyframes examAppear { from { opacity:.5; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
         @media (prefers-reduced-motion:no-preference) { #secure-question.exam-enter > * { animation:examAppear .22s ease-out both; } }
         /* ---------- Cổng đăng nhập Google ---------- */
+        #gate-login-btn[hidden], #gate-open-chrome[hidden], #gate-copy-link[hidden], #gate-browser-url[hidden] { display: none !important; }
         #auth-gate { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center;
                      padding: 1.25rem; background: #f3f8f4; overflow-y: auto; }
         body:not([data-auth="ok"]) #auth-gate { display: flex; }
@@ -287,6 +288,13 @@
         #user-cancel { background: #ecf5ef; color: #0b7a58; }
         #user-confirm-out { background: #be123c; color: #fff; }
 
+        @media (prefers-reduced-motion: no-preference) {
+            @keyframes answerAppear {
+                from { opacity: .88; transform: translateY(4px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .answer-update { animation: answerAppear .22s ease-out both; }
+        }
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation: none !important; transition: none !important; }
             html { scroll-behavior: auto !important; }
@@ -313,9 +321,16 @@
                 <button id="gate-login-btn" type="button" class="mt-5 w-full h-12 rounded-xl bg-bio-700 hover:bg-bio-900 disabled:opacity-60 text-white font-bold text-sm flex items-center justify-center gap-2.5 transition-colors">
                     <i class="fa-brands fa-google"></i> Đăng nhập bằng Google
                 </button>
-                <p id="gate-inapp" hidden class="mt-3 text-xs text-left leading-relaxed text-amber-900 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                    Bạn đang mở trang trong một ứng dụng (Zalo, Facebook...). Google không cho đăng nhập ở đây. Hãy bấm nút menu <b>⋮</b> hoặc <b>...</b> rồi chọn <b>Mở bằng trình duyệt</b> (Chrome/Safari).
-                </p>
+                <div id="gate-inapp" hidden class="mt-4 text-left text-sm leading-relaxed text-amber-950 bg-amber-50 border border-amber-300 rounded-xl p-4" role="region" aria-label="Mở bằng trình duyệt ngoài">
+                    <p class="font-extrabold">Bạn đang mở trang trong Zalo, Messenger hoặc trình duyệt của ứng dụng.</p>
+                    <p class="mt-1">Google có thể chặn đăng nhập tại đây. Trang web <strong>không thể tự ép</strong> ứng dụng mở Chrome/Safari khi bấm liên kết. Hãy chuyển sang trình duyệt ngoài rồi đăng nhập.</p>
+                    <button id="gate-open-chrome" hidden type="button" class="mt-3 w-full min-h-11 px-4 rounded-xl bg-bio-700 text-white font-bold">Thử mở bằng Chrome</button>
+                    <p id="gate-browser-steps" class="mt-3"></p>
+                    <label for="gate-browser-url" class="block mt-3 font-semibold">Đường dẫn để mở trong trình duyệt</label>
+                    <input id="gate-browser-url" type="text" readonly aria-label="Đường dẫn trang web" class="mt-1 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm text-slate-800" style="overflow-wrap:anywhere;">
+                    <button id="gate-copy-link" type="button" class="mt-2 min-h-11 w-full rounded-xl border border-amber-400 bg-white text-amber-950 font-bold">Sao chép đường dẫn</button>
+                    <p id="gate-browser-status" class="mt-2 text-xs font-semibold" role="status" aria-live="polite"></p>
+                </div>
             </div>
 
             <div id="gate-blocked" hidden class="mt-3">
@@ -340,6 +355,8 @@
             </div>
         </div>
     </div>
+
+    <script src="inapp-browser.js?v=__BUILD__"></script>
 
     <div id="update-bar" hidden role="status">
         <span>Đã có phiên bản mới. Trang sẽ tự cập nhật khi bạn làm xong bài.</span>
@@ -396,6 +413,10 @@
         // Chưa cấu hình Firebase: bỏ qua cổng đăng nhập, trang chạy như cũ
         if (!c || !c.apiKey || /^DIEN_/.test(c.apiKey)) { b.dataset.auth = 'ok'; return; }
         b.dataset.auth = 'pending';
+        if (window.bioInApp?.active) {
+            document.getElementById('gate-loading').hidden = true;
+            document.getElementById('gate-login').hidden = false;
+        }
         var m = document.createElement('script');
         m.type = 'module'; m.src = 'auth-gate.js?v=__BUILD__';
         document.head.appendChild(m);
@@ -403,6 +424,10 @@
         setTimeout(function () {
             if (b.dataset.auth !== 'pending') return;
             ['loading', 'login', 'blocked', 'maintenance'].forEach(function (p) { document.getElementById('gate-' + p).hidden = true; });
+            if (window.bioInApp?.active) {
+                document.getElementById('gate-login').hidden = false; // vẫn hiện cách mở trình duyệt khi Firebase bị chặn
+                return;
+            }
             document.getElementById('gate-error-text').textContent = 'Không tải được dịch vụ đăng nhập. Kiểm tra kết nối mạng rồi tải lại trang.';
             document.getElementById('gate-error').hidden = false;
         }, 15000);
@@ -963,7 +988,7 @@
                 <button onclick="shuffleAllQuestionsAndOptions()" class="text-indigo-600 font-bold hover:underline flex items-center gap-1">
                     <i class="fa-solid fa-shuffle"></i> Xáo trộn đề
                 </button>
-                <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="text-bio-700 font-bold hover:underline flex items-center gap-1">
+                <button onclick="scrollPageTop()" class="text-bio-700 font-bold hover:underline flex items-center gap-1">
                     <i class="fa-solid fa-arrow-up"></i> Lên đầu trang
                 </button>
             </div>
@@ -1218,6 +1243,10 @@
             updateToolbarSummary();
         }
 
+        function scrollPageTop() {
+            window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+        }
+
         function switchMainView(viewName) {
             if (window.secureExam && window.secureExam.active()) { window.secureExam.notice(); return; }
             currentMode = viewName;
@@ -1238,7 +1267,7 @@
                 if (window.bioFx) bioFx.activity({ mode: 'home' });
                 homeSection.classList.remove('hidden');
                 questionsSection.classList.add('hidden');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                scrollPageTop();
                 return;
             }
 
@@ -1269,7 +1298,7 @@
             renderAllQuestions();
             updateScoreUI();
             applyModeChrome(viewName);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            scrollPageTop();
         }
 
         // =========================================================================
@@ -1284,8 +1313,23 @@
             document.getElementById('wrong-empty').classList.toggle('hidden', !none);
         }
 
+        // Chỉ thay câu vừa trả lời: giữ nguyên DOM/độ cuộn của các câu khác.
+        function updateQuestionCard(container, uid, html) {
+            if (!uid) { container.innerHTML = html; return; }
+            const oldCard = Array.from(container.children).find(card => card.dataset.questionId === uid);
+            if (!oldCard) return;
+            const template = document.createElement('template');
+            template.innerHTML = html.trim();
+            const nextCard = template.content.firstElementChild;
+            if (!nextCard) return;
+            nextCard.classList.add('answer-update');
+            oldCard.replaceWith(nextCard);
+            const heading = nextCard.querySelector('h4') || nextCard.querySelector('h3');
+            if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
+        }
+
         // --- 7.1 Render Phần I (ABCD) ---
-        function renderMCQs() {
+        function renderMCQs(targetUid) {
             const container = document.getElementById('mcq-container');
             const isStudy = currentMode === 'study';
             const letters = ['A', 'B', 'C', 'D'];
@@ -1293,7 +1337,8 @@
             const filtered = activeMCQData.filter(inTopic);
             document.getElementById('count-part1').textContent = `${filtered.length} câu`;
 
-            container.innerHTML = filtered.map((q, displayIdx) => {
+            const html = filtered.map((q, displayIdx) => {
+                if (targetUid && q.uid !== targetUid) return '';
                 const userChoice = userAnswers.mcq[q.uid];
                 const isAnswered = userChoice !== undefined;
                 const isRevealed = !isAnswered && revealedMCQ[q.uid] === true;
@@ -1349,7 +1394,7 @@
                     : 'bg-cyan-100 text-cyan-800 border-cyan-300';
 
                 return `
-                    <div class="glass-card rounded-2xl p-5 sm:p-6 shadow-sm">
+                    <div data-question-id="${q.uid}" class="glass-card rounded-2xl p-5 sm:p-6 shadow-sm">
                         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
                             <div class="flex items-center gap-2">
                                 <span class="px-3 py-1 rounded-lg bg-bio-700 text-white font-extrabold text-xs sm:text-sm">
@@ -1394,17 +1439,19 @@
                     </div>
                 `;
             }).join('');
+            updateQuestionCard(container, targetUid, html);
         }
 
         // --- 7.2 Render Phần II (Đúng / Sai + Sơ đồ SVG) ---
-        function renderTFs() {
+        function renderTFs(targetUid) {
             const container = document.getElementById('tf-container');
             const isStudy = currentMode === 'study';
 
             const filtered = activeTFData.filter(inTopic);
             document.getElementById('count-part2').textContent = `${filtered.length} câu (${filtered.length * 4} ý)`;
 
-            container.innerHTML = filtered.map(q => {
+            const html = filtered.map(q => {
+                if (targetUid && q.uid !== targetUid) return '';
                 const statementsHTML = q.statements.map(st => {
                     const key = `${q.uid}_${st.label}`;
                     const userVal = userAnswers.tf[key];
@@ -1505,7 +1552,7 @@
                 if (q.diagramType === 'digestiveSystem') diagramHTML = getDigestiveSystemSVG();
 
                 return `
-                    <div class="glass-card rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
+                    <div data-question-id="${q.uid}" class="glass-card rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
                         <div class="flex items-center gap-2">
                             <span class="px-3 py-1 rounded-lg bg-teal-700 text-white font-extrabold text-xs sm:text-sm">
                                 ${q.title}
@@ -1535,17 +1582,19 @@
                     </div>
                 `;
             }).join('');
+            updateQuestionCard(container, targetUid, html);
         }
 
         // --- 7.3 Render Phần III (Trả lời ngắn) ---
-        function renderSAs() {
+        function renderSAs(targetUid) {
             const container = document.getElementById('sa-container');
             const isStudy = currentMode === 'study';
 
             const filtered = activeSAData.filter(inTopic);
             document.getElementById('count-part3').textContent = `${filtered.length} câu`;
 
-            container.innerHTML = filtered.map(q => {
+            const html = filtered.map(q => {
+                if (targetUid && q.uid !== targetUid) return '';
                 const userNum = userAnswers.sa[q.uid];
                 const isAnswered = userNum !== undefined;
                 const showAnswer = isStudy || isAnswered;
@@ -1601,7 +1650,7 @@
                     : 'bg-cyan-100 text-cyan-800 border-cyan-300';
 
                 return `
-                    <div class="glass-card rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+                    <div data-question-id="${q.uid}" class="glass-card rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
                         <div class="flex items-center gap-2">
                             <span class="px-3 py-1 rounded-lg bg-amber-600 text-white font-extrabold text-xs sm:text-sm">
                                 ${q.title}
@@ -1649,6 +1698,7 @@
                     </div>
                 `;
             }).join('');
+            updateQuestionCard(container, targetUid, html);
         }
 
         // =========================================================================
@@ -1661,7 +1711,7 @@
             lastTouched = uid;
             const mq = activeMCQData.find(x => x.uid === uid);
             if (mq && window.bioFx) bioFx.record(uid, optionIndex === mq.correct);
-            renderMCQs();
+            renderMCQs(uid);
             updateScoreUI();
         }
 
@@ -1671,7 +1721,7 @@
             revealedMCQ[uid] = true;
             lastTouched = uid;
             if (window.bioFx) bioFx.record(uid, false);
-            renderMCQs();
+            renderMCQs(uid);
             updateScoreUI();
         }
 
@@ -1685,7 +1735,7 @@
                 const st = getTFState(tq);
                 if (st.done) bioFx.record(uid, st.correct === st.total);
             }
-            renderTFs();
+            renderTFs(uid);
             updateScoreUI();
         }
 
@@ -1695,7 +1745,7 @@
             lastTouched = uid;
             const sq = activeSAData.find(x => x.uid === uid);
             if (sq && window.bioFx) bioFx.record(uid, numVal === sq.correctAnswer);
-            renderSAs();
+            renderSAs(uid);
             updateScoreUI();
         }
 
@@ -1810,6 +1860,6 @@
     </script>
     <script src="features.js?v=__BUILD__"></script>
     <script type="module" src="secure-exam.js?v=__BUILD__"></script>
-<button id="fab-top" class="fab" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Lên đầu trang"><i class="fa-solid fa-arrow-up"></i></button>
+<button id="fab-top" class="fab" onclick="scrollPageTop()" aria-label="Lên đầu trang"><i class="fa-solid fa-arrow-up"></i></button>
 </body>
 </html>
