@@ -98,7 +98,7 @@ function setCloud(user) {
     saveProgress(data) {
       return setDoc(progressRef, { wrong: data.wrong, history: data.history, ts: data.ts, updatedAt: serverTimestamp() });
     },
-    // Trang quản lý dùng để biết ai đang trực tuyến và đang làm gì
+    // Chỉ gửi trạng thái/tiến độ tổng quát; không gửi đáp án hoặc hình ảnh màn hình.
     savePresence(data) {
       return setDoc(doc(db, 'presence', user.uid), {
         ...data,
@@ -138,7 +138,7 @@ onSnapshot(
       ? d.message.trim().slice(0, 300)
       : 'Người quản lý đang tạm đóng trang để cập nhật. Vui lòng quay lại sau.';
     // Quản lý đóng/mở bảng xếp hạng: báo cho features.js
-    window.bioSite = { leaderboardOff: d.leaderboard === false, aiWatch: d.aiWatch === true, warningLimit: Number.isInteger(d.warningLimit) && d.warningLimit >= 1 && d.warningLimit <= 10 ? d.warningLimit : 3 };
+    window.bioSite = { leaderboardOff: d.leaderboard === false };
     window.dispatchEvent(new Event('bio:site'));
     if (maintenance) showMaintenance();
     else if (was && restore) restore();

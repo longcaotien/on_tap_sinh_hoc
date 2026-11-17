@@ -1,4 +1,3 @@
 {
-  "functions": [{ "source": "functions", "codebase": "exam", "ignore": ["node_modules", "test", "*.log"] }],
   "firestore": { "rules": "firestore.rules" }
 }
